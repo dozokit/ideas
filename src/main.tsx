@@ -1,10 +1,10 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
-
-// Placeholder: the real app (router, pages, styles) lands in phase 2.
-function App() {
-  return <p>Dozokit Ideas</p>;
-}
+import { App } from "./App";
+import "@fontsource/geist-mono/400.css";
+import "@fontsource/geist-mono/500.css";
+import "./styles/app.css";
+import "./styles/ideas.css";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
