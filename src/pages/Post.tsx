@@ -93,7 +93,7 @@ export function Post({ boardId, postId, me, navigate }: { boardId: string; postI
     setVoteBusy(true);
     setVoteMsg(null);
     try {
-      const token = turnstileRef.current?.getToken() ?? null;
+      const token = (await turnstileRef.current?.getToken()) ?? null;
       await api(`/api/posts/${postId}/vote`, { method: "POST", body: JSON.stringify({ turnstile: token }) });
       setVoted(true);
       setVotes((v) => v + 1);
@@ -111,7 +111,7 @@ export function Post({ boardId, postId, me, navigate }: { boardId: string; postI
     setCommentBusy(true);
     setCommentError(null);
     try {
-      const token = turnstileRef.current?.getToken() ?? null;
+      const token = (await turnstileRef.current?.getToken()) ?? null;
       const c = await api<Comment>(`/api/posts/${postId}/comments`, { method: "POST", body: JSON.stringify({ body: commentBody, turnstile: token }) });
       setComments((cs) => [...cs, c]);
       setCommentBody("");

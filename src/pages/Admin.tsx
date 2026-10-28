@@ -266,7 +266,7 @@ export function Admin({ me }: { me: Me }) {
         )}
         {!error && boards && boards.length === 0 && <p className="help">{t.boards.empty}</p>}
         {!error && boards && boards.length > 0 && (
-          <div>
+          <div className="admin-board-list">
             {boards.map((b) => (
               <AdminBoardPanel key={b.id} board={b} onSaved={(nb) => setBoards((bs) => (bs ?? []).map((x) => (x.id === nb.id ? nb : x)))} />
             ))}

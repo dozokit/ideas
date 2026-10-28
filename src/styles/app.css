@@ -153,6 +153,7 @@ input::placeholder, textarea::placeholder { color: color-mix(in oklab, var(--col
 .code-copy:hover:not(:disabled) { background: var(--color-ink-2); }
 
 .settings { max-width: 52rem; }
+.settings > h1 { margin-bottom: var(--space-xl); }
 
 /* Sign in */
 .login {

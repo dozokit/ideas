@@ -2,8 +2,7 @@ import { useState } from "react";
 import workflow from "../../.github/workflows/update.yml?raw";
 
 // Cloudflare's Deploy button copies the repository without its .github folder, so a new copy
-// has no update workflow. This opens GitHub's "new file" page with the workflow filled in. A copy
-// with an older workflow gets GitHub's edit page instead, with the new one on the clipboard.
+// has no update workflow. This opens GitHub's "new file" page with the workflow filled in.
 export function TurnOnUpdates() {
   const [repo, setRepo] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -14,17 +13,13 @@ export function TurnOnUpdates() {
         const m = repo.trim().match(/^(?:https?:\/\/)?(?:www\.)?github\.com\/([\w.-]+)\/([\w.-]+?)(?:\.git)?\/?$/i);
         if (!m) return setError("Paste your copy's address as it shows in GitHub, like github.com/your-name/dozokit-ideas.");
         setError(null);
-        if ((e.nativeEvent as SubmitEvent).submitter?.getAttribute("name") === "replace") {
-          navigator.clipboard.writeText(workflow);
-          return window.open(`https://github.com/${m[1]}/${m[2]}/edit/main/.github/workflows/update.yml`, "_blank", "noopener");
-        }
         const q = new URLSearchParams({ filename: ".github/workflows/update.yml", value: workflow });
         window.open(`https://github.com/${m[1]}/${m[2]}/new/main?${q}`, "_blank", "noopener");
       }}
     >
       <p className="lead">
         Updates run from your copy on GitHub. Cloudflare's Deploy button leaves the update button out, so add it once: paste your copy's address, press the button,
-        then Commit changes on GitHub. From then on, Actions → Update → Run workflow installs the latest release, once it checks the release is signed by Dozokit. Added it before 1.0.1? Press Replace it instead: GitHub opens the file with the new version on your clipboard, so select everything in it, paste, then Commit changes.
+        then Commit changes on GitHub. From then on, Actions → Update → Run workflow installs the latest release, once it checks the release is signed by Dozokit.
       </p>
       <div className="field-stack">
         <label className="field">
@@ -35,9 +30,6 @@ export function TurnOnUpdates() {
       <div className="field-actions">
         <button type="submit" className="btn btn--ink">
           Add the update button
-        </button>
-        <button type="submit" name="replace" className="btn btn--quiet">
-          Replace it
         </button>
       </div>
       <p id="updates-help" className={error ? "help help--error" : "help"} role="status">

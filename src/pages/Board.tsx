@@ -23,7 +23,7 @@ function NewIdea({ boardId, turnstileRef, onAdded }: { boardId: string; turnstil
         setBusy(true);
         setError(null);
         try {
-          const token = turnstileRef.current?.getToken() ?? null;
+          const token = (await turnstileRef.current?.getToken()) ?? null;
           const post = await api<PostSummary>(`/api/boards/${boardId}/posts`, { method: "POST", body: JSON.stringify({ title, body: body || undefined, turnstile: token }) });
           onAdded(post);
           setTitle("");
@@ -74,7 +74,7 @@ function PostRow({ post, boardId, user, turnstileRef, navigate }: { post: PostSu
     setBusy(true);
     setMsg(null);
     try {
-      const token = turnstileRef.current?.getToken() ?? null;
+      const token = (await turnstileRef.current?.getToken()) ?? null;
       await api(`/api/posts/${post.id}/vote`, { method: "POST", body: JSON.stringify({ turnstile: token }) });
       setVoted(true);
       setVotes((v) => v + 1);
