@@ -13,11 +13,16 @@ const TEN_MINUTES = 10 * 60 * 1000;
 
 export const SETUP_NEEDED = "This board needs a session secret of 32 characters or more before it opens.";
 
+const DEV_PLACEHOLDER_SECRET = "dev-only-secret-change-me-32-chars-minimum";
+
 // Without a long SESSION_SECRET nobody can safely stay signed in, so on anything but a developer's
-// own machine every page (and every API call) shows "setup needed" until the owner sets it.
+// own machine every page (and every API call) shows "setup needed" until the owner sets it. The
+// placeholder from .dev.vars.example counts as not set once we're off a developer's machine.
 export function setupNeeded(req: Request, env: Env): string | null {
   const secret = env.SESSION_SECRET;
-  return (secret ? secret.length < 32 : !isLocalHost(req)) ? SETUP_NEEDED : null;
+  const local = isLocalHost(req);
+  if (secret === DEV_PLACEHOLDER_SECRET) return local ? null : SETUP_NEEDED;
+  return (secret ? secret.length < 32 : !local) ? SETUP_NEEDED : null;
 }
 
 function cookie(req: Request, name: string, value: string, maxAgeSeconds: number) {
