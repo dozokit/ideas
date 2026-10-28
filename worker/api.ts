@@ -65,7 +65,7 @@ async function checkVersion(): Promise<{ version: string; latest: string | null 
 export async function me(req: Request, env: Env) {
   const user = await currentUser(req, env);
   const admin = isAdmin(env, user);
-  const { version, latest } = await checkVersion();
+  const { version, latest } = admin ? await checkVersion() : { version: VERSION, latest: null };
   return json({
     user: user ? { id: user.id, name: user.name, email: user.email, admin } : null,
     config: {
