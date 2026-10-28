@@ -1,0 +1,76 @@
+/* Dozokit Ideas: boards, posts, votes, comments, statuses, admin panels. */
+
+/* Boards list */
+.board-list { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-md); grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr)); }
+.board-card { display: block; padding: var(--space-lg); text-decoration: none; }
+.board-card h2 { font-size: var(--text-lg); margin-bottom: var(--space-2xs); }
+
+/* Badges: board visibility, post status */
+.badge { display: inline-flex; align-items: center; min-height: 22px; padding: 0 var(--space-xs); border-radius: var(--radius-pill); background: var(--color-paper-2); color: var(--color-ink-2); font-size: var(--text-xs); font-weight: 500; white-space: nowrap; }
+.badge--team { background: var(--color-board); color: var(--color-board-type); }
+.badge--planned { background: color-mix(in oklab, var(--color-accent-2) 16%, var(--color-paper-2)); color: var(--color-ink); }
+.badge--in_progress { background: color-mix(in oklab, var(--color-accent) 30%, var(--color-paper-2)); color: var(--color-ink); }
+.badge--done { background: color-mix(in oklab, var(--color-success) 20%, var(--color-paper-2)); color: var(--color-ink); }
+
+/* Post form */
+.post-form { margin-bottom: var(--space-2xl); }
+
+/* Post list */
+.post-list { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-sm); }
+.post-row { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: var(--space-md); align-items: start; padding: var(--space-md); }
+.post-main { min-width: 0; display: grid; gap: var(--space-2xs); }
+.post-title { font-size: var(--text-md); font-weight: 500; text-decoration: none; color: inherit; }
+.post-title:hover { text-decoration: underline; text-decoration-color: var(--color-accent-2); }
+.post-meta { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-sm); color: var(--color-muted); font-size: var(--text-xs); }
+
+/* Vote button: a stacked count-over-label pill, same action everywhere it appears. */
+.vote-btn {
+  display: grid; justify-items: center; gap: 2px; width: 56px; min-height: 52px; padding: var(--space-2xs) 0;
+  border: 1px solid var(--color-ink-2); border-radius: var(--radius-card); background: var(--color-cotton);
+  color: var(--color-ink); cursor: pointer; transition: background-color var(--dur-micro) linear, transform var(--dur-short) var(--ease-out);
+}
+.vote-btn:hover:not(:disabled) { background: var(--color-paper-2); transform: translateY(-1px); }
+.vote-btn:active:not(:disabled) { transform: translateY(0); }
+.vote-btn .fig { font-size: var(--text-lg); font-weight: 600; line-height: 1; }
+.vote-btn-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--color-muted); }
+.vote-btn[disabled] { cursor: not-allowed; opacity: 1; background: var(--color-paper-2); border-color: var(--color-rule-2); }
+.vote-btn[disabled] .vote-btn-label { color: var(--color-accent-2); }
+
+/* Post page */
+.post-head { margin-bottom: var(--space-lg); }
+.post-head-top { display: flex; flex-wrap: wrap; align-items: start; gap: var(--space-md); margin-bottom: var(--space-sm); }
+.post-head-top h1 { flex: 1; min-width: 0; }
+.post-body { max-width: 65ch; margin-top: var(--space-md); }
+.crumb { display: inline-flex; margin-bottom: var(--space-md); color: var(--color-muted); font-size: var(--text-sm); text-decoration: none; }
+.crumb:hover { text-decoration: underline; text-decoration-color: var(--color-accent-2); }
+
+/* Comments */
+.comment-list { list-style: none; margin: 0 0 var(--space-lg); padding: 0; display: grid; gap: var(--space-md); }
+.comment { border-top: 1px solid var(--color-rule); padding-top: var(--space-sm); }
+.comment-meta { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--space-sm); margin-bottom: var(--space-2xs); color: var(--color-muted); font-size: var(--text-xs); }
+.comment-author { font-weight: 500; color: var(--color-ink-2); }
+
+.auth-banner { padding-top: var(--space-sm); }
+.signin-panel { padding-top: var(--space-md); }
+
+/* Sign-in prompts (inline, in place of a form; and the full gate for team boards) */
+.signin-inline { display: grid; gap: var(--space-sm); padding: var(--space-md); max-width: 30rem; }
+.signin-inline p { font-size: var(--text-sm); }
+.gate { max-width: 28rem; margin: var(--space-2xl) auto; padding: var(--space-xl) var(--space-lg); display: grid; gap: var(--space-sm); text-align: left; }
+.gate h1 { font-size: var(--text-xl); }
+.dev-login { display: grid; gap: var(--space-sm); margin-top: var(--space-xs); }
+
+/* Admin: boards list and per-board panel */
+.admin-board { border-top: 1px solid var(--color-ink-2); padding-top: var(--space-md); }
+.admin-board-head { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-sm); margin-bottom: var(--space-md); }
+.admin-board-head h3 { font-size: var(--text-lg); }
+.admin-board-grid { display: grid; gap: var(--space-lg); grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr)); }
+.sso-row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-sm); }
+.sso-secret { font-family: var(--font-outlier); font-size: var(--text-sm); word-break: break-all; }
+
+@media (max-width: 40rem) {
+  .board-list { grid-template-columns: 1fr; }
+  .post-row { grid-template-columns: 44px minmax(0, 1fr); gap: var(--space-sm); padding: var(--space-sm); }
+  .vote-btn { width: 44px; min-height: 44px; }
+  .admin-board-grid { grid-template-columns: 1fr; }
+}
