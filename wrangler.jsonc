@@ -9,9 +9,9 @@
   "assets": { "binding": "ASSETS", "run_worker_first": true },
   // No database_id: the Deploy button creates the database, or `wrangler d1 create` adds it here.
   "d1_databases": [{ "binding": "DB", "database_name": "dozokit-ideas", "migrations_dir": "migrations" }],
-  // Nightly backup of every board. Keep this bucket private: backups hold signed-link secrets.
+  // Backup of every board, a small piece every 15 minutes. Keep this bucket private: backups hold signed-link secrets.
   "r2_buckets": [{ "binding": "BACKUPS", "bucket_name": "dozokit-ideas-backups" }],
-  "triggers": { "crons": ["17 3 * * *"] },
+  "triggers": { "crons": ["*/15 * * * *"] },
   // Sign-in attempts per address. namespace_id only has to be unique in your Cloudflare account: change it if it clashes.
   "ratelimits": [{ "name": "LOGIN_LIMIT", "namespace_id": "7312", "simple": { "limit": 20, "period": 60 } }],
   "observability": { "enabled": true }

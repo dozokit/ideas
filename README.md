@@ -50,7 +50,7 @@ Your admin page tells you when a newer version is out (Admin → Updates). Open 
 
 ## Backups
 
-Every night, your boards, ideas, votes and comments are copied to the private Cloudflare R2 bucket `dozokit-ideas-backups`, and kept for 14 days. The backup also holds each board's signing secret (the one used for signed-link sign-in), so keep that bucket private.
+Every 15 minutes, a small piece of your boards, ideas, votes and comments is copied to the private Cloudflare R2 bucket `dozokit-ideas-backups`; a full copy of everything completes within a day (more for very large boards). Old backups are kept for 14 days. The layout is `backups/<day>/<table>/0001.json`, `0002.json`, and so on, one file per batch of rows. To restore, insert the rows of each file back into the table with the same name. The backup also holds each board's signing secret (the one used for signed-link sign-in), so keep that bucket private.
 
 ## How it counts
 
