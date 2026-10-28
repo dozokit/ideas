@@ -90,6 +90,11 @@ export interface Messages {
     ssoCopy: string;
     ssoCopied: string;
     updatesTitle: string;
+    updatesLead: string;
+    updatesFieldLabel: string;
+    updatesSubmit: string;
+    updatesInvalidRepo: string;
+    updatesHelp: string;
     versionTitle: string;
     versionLine: string;
     latestAvailable: string;
@@ -207,6 +212,12 @@ const en: Messages = {
     ssoCopy: "Copy",
     ssoCopied: "Copied",
     updatesTitle: "Updates",
+    updatesLead:
+      "Updates run from your copy on GitHub. Cloudflare's Deploy button leaves the update button out, so add it once: paste your copy's address, press the button, then Commit changes on GitHub. From then on, Actions → Update → Run workflow installs the latest release, once it checks the release is signed by Dozokit.",
+    updatesFieldLabel: "Your copy on GitHub",
+    updatesSubmit: "Add the update button",
+    updatesInvalidRepo: "Paste your copy's address as it shows in GitHub, like github.com/your-name/dozokit-ideas.",
+    updatesHelp: "How updates work:",
     versionTitle: "Version",
     versionLine: "Dozokit Ideas {version}.",
     latestAvailable: "Version {latest} is available.",
@@ -223,7 +234,7 @@ const en: Messages = {
     invalid_status: "Choose a status.",
     sign_in: "Sign in to continue.",
     team_only: "This board is for the team. Sign in to see it.",
-    turnstile_failed: "The verification didn't pass. Try again.",
+    turnstile_failed: "We couldn't check that you're a person. Try again.",
     setup_needed: "This board isn't set up yet.",
     already_voted: "You already voted for this idea.",
     invalid_title: "Enter a title, up to 120 characters.",
@@ -242,7 +253,7 @@ const en: Messages = {
 
 const fr: Messages = {
   app: { wordmark: "Dozokit Ideas" },
-  nav: { boards: "Boards", admin: "Admin" },
+  nav: { boards: "Tableaux", admin: "Admin" },
   lang: { label: "Langue" },
   common: { loading: "Chargement…", retry: "Réessayer" },
   auth: {
@@ -255,7 +266,7 @@ const fr: Messages = {
     signInToPost: "Connectez-vous pour partager une idée.",
     signInToVote: "Connectez-vous pour voter.",
     signInToComment: "Connectez-vous pour commenter.",
-    teamOnly: "Ce board est réservé à l'équipe. Connectez-vous pour le voir.",
+    teamOnly: "Ce tableau est réservé à l'équipe. Connectez-vous pour le voir.",
   },
   setup: {
     title: "Configuration nécessaire",
@@ -263,8 +274,8 @@ const fr: Messages = {
     reload: "Recharger",
   },
   boards: {
-    title: "Boards",
-    empty: "Pas encore de board.",
+    title: "Tableaux",
+    empty: "Pas encore de tableau.",
     visibilityTeam: "Équipe",
   },
   board: {
@@ -282,7 +293,7 @@ const fr: Messages = {
     by: "par {name} · {date}",
   },
   post: {
-    back: "Retour au board",
+    back: "Retour au tableau",
     commentsTitle: "Commentaires",
     commentPlaceholder: "Ajoutez un commentaire",
     commentSubmit: "Commenter",
@@ -296,12 +307,12 @@ const fr: Messages = {
     deleteConfirm: "Ses votes et commentaires se déplacent ou disparaissent, et c'est irréversible.",
     deleteConfirmSubmit: "Supprimer l'idée",
     deleteCancel: "La garder",
-    gone: "Cette idée a été fusionnée avec une autre, ou supprimée. Recherchez-la dans le board.",
+    gone: "Cette idée a été fusionnée avec une autre, ou supprimée. Recherchez-la dans le tableau.",
   },
   admin: {
     title: "Admin",
     notAdmin: "Cette page est réservée à l'administrateur.",
-    newBoardTitle: "Nouveau board",
+    newBoardTitle: "Nouveau tableau",
     fieldId: "Adresse",
     fieldIdHelp: "Lettres minuscules, chiffres et tirets, de 2 à 40 caractères. Ne pourra plus changer.",
     fieldName: "Nom",
@@ -310,7 +321,7 @@ const fr: Messages = {
     visibilityTeam: "Équipe uniquement",
     fieldDomains: "Domaines e-mail autorisés",
     domainsHelp: "Séparés par des virgules, par ex. exemple.com, exemple.org. Laissez vide pour n'en autoriser aucun.",
-    createSubmit: "Créer le board",
+    createSubmit: "Créer le tableau",
     save: "Enregistrer",
     saved: "Enregistré.",
     ssoTitle: "Connexion par lien signé",
@@ -324,6 +335,12 @@ const fr: Messages = {
     ssoCopy: "Copier",
     ssoCopied: "Copié",
     updatesTitle: "Mises à jour",
+    updatesLead:
+      "Les mises à jour partent de votre copie sur GitHub. Le bouton Deploy de Cloudflare laisse ce bouton de côté, alors ajoutez-le une fois : collez l'adresse de votre copie, appuyez sur le bouton, puis Commit changes sur GitHub. Ensuite, Actions → Update → Run workflow installe la dernière version, une fois qu'elle a vérifié que la version est bien signée par Dozokit.",
+    updatesFieldLabel: "Votre copie sur GitHub",
+    updatesSubmit: "Ajouter le bouton de mise à jour",
+    updatesInvalidRepo: "Collez l'adresse de votre copie telle qu'elle apparaît sur GitHub, par exemple github.com/votre-nom/dozokit-ideas.",
+    updatesHelp: "Comment fonctionnent les mises à jour :",
     versionTitle: "Version",
     versionLine: "Dozokit Ideas {version}.",
     latestAvailable: "La version {latest} est disponible.",
@@ -336,17 +353,17 @@ const fr: Messages = {
     invalid_name: "Entrez un nom.",
     invalid_visibility: "Choisissez une visibilité.",
     invalid_domains: "Entrez des domaines valides, séparés par des virgules.",
-    board_exists: "Cette adresse est déjà utilisée par un autre board.",
+    board_exists: "Cette adresse est déjà utilisée par un autre tableau.",
     invalid_status: "Choisissez un statut.",
     sign_in: "Connectez-vous pour continuer.",
-    team_only: "Ce board est réservé à l'équipe. Connectez-vous pour le voir.",
-    turnstile_failed: "La vérification n'a pas réussi. Réessayez.",
-    setup_needed: "Ce board n'est pas encore configuré.",
+    team_only: "Ce tableau est réservé à l'équipe. Connectez-vous pour le voir.",
+    turnstile_failed: "Nous n'avons pas pu vérifier que vous êtes une personne. Réessayez.",
+    setup_needed: "Ce tableau n'est pas encore configuré.",
     already_voted: "Vous avez déjà voté pour cette idée.",
     invalid_title: "Entrez un titre, jusqu'à 120 caractères.",
     invalid_body: "Restez sous la limite, ou laissez vide.",
     invalid_target: "Choisissez une autre idée pour la fusion.",
-    different_board: "Fusionnez uniquement des idées du même board.",
+    different_board: "Fusionnez uniquement des idées du même tableau.",
     cross_origin: "Cette requête a été bloquée. Rechargez et réessayez.",
     server_error: "Une erreur est survenue. Réessayez.",
     invalid_email: "Entrez un e-mail valide.",
@@ -359,7 +376,7 @@ const fr: Messages = {
 
 const es: Messages = {
   app: { wordmark: "Dozokit Ideas" },
-  nav: { boards: "Boards", admin: "Admin" },
+  nav: { boards: "Tableros", admin: "Admin" },
   lang: { label: "Idioma" },
   common: { loading: "Cargando…", retry: "Reintentar" },
   auth: {
@@ -380,7 +397,7 @@ const es: Messages = {
     reload: "Recargar",
   },
   boards: {
-    title: "Boards",
+    title: "Tableros",
     empty: "Todavía no hay tableros.",
     visibilityTeam: "Equipo",
   },
@@ -441,6 +458,12 @@ const es: Messages = {
     ssoCopy: "Copiar",
     ssoCopied: "Copiado",
     updatesTitle: "Actualizaciones",
+    updatesLead:
+      "Las actualizaciones salen de tu copia en GitHub. El botón Deploy de Cloudflare deja fuera este botón, así que añádelo una vez: pega la dirección de tu copia, pulsa el botón y luego Commit changes en GitHub. A partir de ahí, Actions → Update → Run workflow instala la última versión, una vez que comprueba que está firmada por Dozokit.",
+    updatesFieldLabel: "Tu copia en GitHub",
+    updatesSubmit: "Añadir el botón de actualización",
+    updatesInvalidRepo: "Pega la dirección de tu copia tal como aparece en GitHub, por ejemplo github.com/tu-nombre/dozokit-ideas.",
+    updatesHelp: "Cómo funcionan las actualizaciones:",
     versionTitle: "Versión",
     versionLine: "Dozokit Ideas {version}.",
     latestAvailable: "La versión {latest} está disponible.",
@@ -457,7 +480,7 @@ const es: Messages = {
     invalid_status: "Elige un estado.",
     sign_in: "Inicia sesión para continuar.",
     team_only: "Este tablero es para el equipo. Inicia sesión para verlo.",
-    turnstile_failed: "La verificación no pasó. Inténtalo de nuevo.",
+    turnstile_failed: "No pudimos comprobar que eres una persona. Inténtalo de nuevo.",
     setup_needed: "Este tablero todavía no está configurado.",
     already_voted: "Ya votaste por esta idea.",
     invalid_title: "Escribe un título, hasta 120 caracteres.",
@@ -476,7 +499,7 @@ const es: Messages = {
 
 const ptBR: Messages = {
   app: { wordmark: "Dozokit Ideas" },
-  nav: { boards: "Boards", admin: "Admin" },
+  nav: { boards: "Quadros", admin: "Admin" },
   lang: { label: "Idioma" },
   common: { loading: "Carregando…", retry: "Tentar de novo" },
   auth: {
@@ -497,7 +520,7 @@ const ptBR: Messages = {
     reload: "Recarregar",
   },
   boards: {
-    title: "Boards",
+    title: "Quadros",
     empty: "Ainda não há quadros.",
     visibilityTeam: "Equipe",
   },
@@ -558,6 +581,12 @@ const ptBR: Messages = {
     ssoCopy: "Copiar",
     ssoCopied: "Copiado",
     updatesTitle: "Atualizações",
+    updatesLead:
+      "As atualizações partem da sua cópia no GitHub. O botão Deploy do Cloudflare deixa esse botão de fora, então adicione-o uma vez: cole o endereço da sua cópia, clique no botão e depois Commit changes no GitHub. A partir daí, Actions → Update → Run workflow instala a versão mais recente, depois de verificar que ela foi assinada pela Dozokit.",
+    updatesFieldLabel: "Sua cópia no GitHub",
+    updatesSubmit: "Adicionar o botão de atualização",
+    updatesInvalidRepo: "Cole o endereço da sua cópia como ele aparece no GitHub, por exemplo github.com/seu-nome/dozokit-ideas.",
+    updatesHelp: "Como funcionam as atualizações:",
     versionTitle: "Versão",
     versionLine: "Dozokit Ideas {version}.",
     latestAvailable: "A versão {latest} está disponível.",
@@ -574,7 +603,7 @@ const ptBR: Messages = {
     invalid_status: "Escolha um status.",
     sign_in: "Entre para continuar.",
     team_only: "Este quadro é para a equipe. Entre para vê-lo.",
-    turnstile_failed: "A verificação não passou. Tente de novo.",
+    turnstile_failed: "Não conseguimos confirmar que você é uma pessoa. Tente de novo.",
     setup_needed: "Este quadro ainda não está configurado.",
     already_voted: "Você já votou nesta ideia.",
     invalid_title: "Digite um título, até 120 caracteres.",
