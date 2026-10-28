@@ -1,0 +1,79 @@
+== 1. Admin signs in (local login stub) and creates a public board and a team board
+  screenshot: demo/01-admin-empty.png
+  boards: ['team:team', 'ideas:public']
+  screenshot: demo/02-admin-boards.png
+== 2. Alice signs in and posts 2 ideas
+  screenshot: demo/03-board-empty-signed-in.png
+  posts: [(2, 'Dark theme for the dashboard', 0), (1, 'Add a dark mode', 0)]
+  screenshot: demo/04-two-ideas.png
+== 3. Alice votes; the second vote is rejected
+  vote button after vote: '1\nVOTED' disabled = True
+  2nd vote via API on post 2 -> {'status': 409, 'body': {'error': 'already_voted'}}
+  screenshot: demo/05-voted.png
+== 4. Alice comments
+  screenshot: demo/06-comment.png
+== 5. Admin changes the status to planned
+  status now: {'post': {'id': 2, 'title': 'Dark theme for the dashboard', 'body': None, 'status': 'planned', 'votes': 1, 'comments': 1, 'createdAt': 1793209025005, 'author': 'Alice', 'voted': False}, 'board': {'id': 'ideas', 'name': 'Our shop ideas', 'visibility': 'public'}, 'comments': [{'id': 1, 'body': 'My eyes would thank you in the evening.', 'author': 'Alice', 'createdAt': 1793209033442}]}
+  screenshot: demo/07-status-planned.png
+== 6. Admin merges the duplicate into the first idea (votes + comments carry over)
+  bob votes 2: 200
+  bob votes 1: 200
+  alice votes the duplicate: 200
+  before merge: target {'id': 2, 'title': 'Dark theme for the dashboard', 'body': None, 'status': 'planned', 'votes': 2, 'comments': 1, 'createdAt': 1793209025005, 'author': 'Alice', 'voted': False} | duplicate {'id': 1, 'title': 'Add a dark mode', 'body': None, 'status': 'open', 'votes': 2, 'comments': 1, 'createdAt': 1793209021615, 'author': 'Alice', 'voted': False}
+  screenshot: demo/08-duplicate-before-merge.png
+  after merge: target {"post": {"id": 2, "title": "Dark theme for the dashboard", "body": null, "status": "planned", "votes": 2, "comments": 2, "createdAt": 1793209025005, "author": "Alice", "voted": false}, "board": {"id": "ideas", "name": "Our shop ideas", "visibility": "public"}, "comments": [{"id": 1, "body": "My eyes would thank you in the evening.", "author": "Alice", "createdAt": 1793209033442}, {"id": 2, "body": "Same here, please.", "author": "Bob", "createdAt": 1793209038599}]}
+  duplicate now -> 404
+  screenshot: demo/09-after-merge.png
+== 7. Admin deletes an idea
+  screenshot: demo/10-delete-confirm.png
+  deleted post now -> 404
+== 8. Language switch (FR, ES, PT-BR)
+  fr: <html lang>=fr
+  screenshot: demo/11-lang-fr.png
+  es: <html lang>=es
+  screenshot: demo/11-lang-es.png
+  pt-BR: <html lang>=pt-BR
+  screenshot: demo/11-lang-pt-BR.png
+== 9. Team-only board: visitor sees nothing
+  anonymous API on team board: {'status': 403, 'body': {'error': 'team_only', 'name': 'Team board', 'visibility': 'team'}}
+  screenshot: demo/12-team-board-outsider.png
+== 10. Signed-link login with locally minted JWTs
+  screenshot: demo/13-admin-signed-link-panel.png
+  screenshot: demo/14-sso-valid-lands-on-team-board.png
+  valid link        -> (200, 'http://localhost:8787/b/team', 'Dozokit Ideas | Boards | English | Français | Español | Português (Brasil) | Sign out | Team board Team | Share an idea | What would you like to see? | Add detail (option')
+  that user's /api/me: {"id": 4, "name": "Carol (from the company tool)", "email": "carol@company.test", "admin": false}
+  can that user open admin routes? {'status': 403, 'body': {'error': 'admin_only'}}
+  screenshot: demo/15-sso-reused-rejected.png
+  same link again   -> (401, 'http://localhost:8787/sso', 'This sign-in link has already been used. Go back to the tool you came from and open a new one.')
+  screenshot: demo/16-sso-expired-rejected.png
+  expired link      -> (401, 'http://localhost:8787/sso', 'This sign-in link has expired. Go back to the tool you came from and open it again.')
+  30-minute link    -> (401, 'http://localhost:8787/sso', 'This sign-in link stays open too long to be safe. Go back to the tool you came from and open it again.')
+  owner's email via link, return_to=evil -> (200, 'http://localhost:8787/b/team', 'Dozokit Ideas | Boards | English | Français | Español | Português (Brasil) | Sign out | Team board Team | Share an idea | What would you like to see? | Add detail (option') | admin? {'id': 5, 'name': 'Owner?', 'email': 'owner@example.com', 'admin': False}
+  alg none          -> (401, 'http://localhost:8787/sso', "This sign-in link isn't valid. Go back to the tool you came from and open it again.")
+  JSON error codes for the same kinds of bad links:
+    valid            (302, '302 -> /b/team')
+    same again       (401, {'error': 'token_used'})
+    expired          (401, {'error': 'expired'})
+    30 min ahead     (401, {'error': 'too_long'})
+    wrong audience   (401, {'error': 'wrong_audience'})
+    wrong signature  (401, {'error': 'invalid'})
+    unknown board    (401, {'error': 'unknown_board'})
+    no jti           (401, {'error': 'invalid'})
+    return_to evil   (302, '302 -> /b/team')
+== 11. Mobile (390px)
+  screenshot: demo/17-mobile-board.png
+DONE
+== 12. Nightly backup (cron handler run locally)
+scheduled trigger -> HTTP 200
+  R2 object: backups/2026-10-28/board_members.json 237 bytes
+  R2 object: backups/2026-10-28/boards.json 330 bytes
+  R2 object: backups/2026-10-28/comments.json 198 bytes
+  R2 object: backups/2026-10-28/posts.json 161 bytes
+  R2 object: backups/2026-10-28/users.json 932 bytes
+  R2 object: backups/2026-10-28/votes.json 107 bytes
+== 13. Google sign-in start (fake client id, nothing sent to Google)
+HTTP/1.1 302 Found
+Location: https://accounts.google.com/o/oauth2/v2/auth?client_id=demo-client-id.apps.googleusercontent.com&redirect_uri=http%3A%2F%2Flocalhost%3A8787%2Fauth%2Fgoogle%2Fcallback&response_type=code&scope=openid+email+profile&state=<random>
+Set-Cookie: dozokit_ideas_state=<random>; Path=/; HttpOnly; SameSite=Lax; Max-Age=600
+dev login with DEV_LOGIN=0 -> HTTP 404
+screenshot: demo/18-sign-in-with-google.png (team board for a visitor, Google client configured)
