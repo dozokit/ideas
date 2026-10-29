@@ -5,8 +5,9 @@
   "compatibility_date": "2026-10-01",
   // The update check (dozokit.com) is the only call to the public internet.
   "compatibility_flags": ["global_fetch_strictly_public"],
-  // Every address goes to the Worker first: boards live at /b/*, the admin page under /admin.
-  "assets": { "binding": "ASSETS", "run_worker_first": true },
+  // Pages and data go to the Worker; the built files (/assets/*, icon.svg) are served straight by
+  // Cloudflare, so they don't count toward the free plan's 100,000 requests a day.
+  "assets": { "binding": "ASSETS", "run_worker_first": ["/", "/b/*", "/admin", "/admin/*", "/api/*", "/sso", "/robots.txt"] },
   // No database_id: the Deploy button creates the database, or `wrangler d1 create` adds it here.
   "d1_databases": [{ "binding": "DB", "database_name": "dozokit-ideas", "migrations_dir": "migrations" }],
   // A copy of every board on Sundays at 03:00 UTC, the last 4 kept. Keep this bucket private: backups hold signed-link secrets.

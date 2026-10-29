@@ -2,6 +2,11 @@
 
 How to update your copy: [dozokit.com/ideas/guide#updating](https://dozokit.com/ideas/guide#updating).
 
+## 1.2.1 – 2026-10-29
+
+- The app's files (scripts, styles, fonts, icon) are served straight by Cloudflare instead of through the Worker, so a board view uses about half as many of the free plan's 100,000 requests a day.
+- "Boards" and "+ New board" sit side by side, the version shows at the top of Updates, and the ideas list has more room under the filters.
+
 ## 1.2.0 – 2026-10-29
 
 - The admin page is now three screens: **Admin** shows one card per board (Copy link, Open, Settings) and creates a board behind **New board**; a board's **Settings** has the tabs Look, Statuses and Connect to your product; **Settings** in the top bar holds updates, the version and the password.
