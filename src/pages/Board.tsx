@@ -1,4 +1,4 @@
-import { useEffect, useState, type CSSProperties, type MouseEvent } from "react";
+import { useEffect, useRef, useState, type CSSProperties, type MouseEvent } from "react";
 import { api, ApiError } from "../lib/api";
 import { errorText, format, formatDate, statusLabel, useT } from "../i18n";
 import type { BoardInfo, BoardStatus, PostSummary } from "../lib/types";
@@ -22,6 +22,8 @@ function NewIdea({ boardId, navigate, onAdded }: { boardId: string; navigate: Na
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [similar, setSimilar] = useState<{ id: number; title: string; votes: number }[]>([]);
+  const panel = useRef<HTMLDialogElement>(null);
+  const titleInput = useRef<HTMLInputElement>(null);
 
   // Ideas already on the board that match the title being typed, so people vote instead of repeating them.
   useEffect(() => {
@@ -37,9 +39,24 @@ function NewIdea({ boardId, navigate, onAdded }: { boardId: string; navigate: Na
     };
   }, [boardId, title]);
 
+  // A modal <dialog>: Escape closes it and focus goes back to the button; a click on the backdrop
+  // (the dialog itself, outside its form) closes it too.
   return (
+    <>
+    <button
+      type="button"
+      className="btn btn--ink suggest-btn"
+      onClick={() => {
+        panel.current!.showModal();
+        titleInput.current!.focus();
+      }}
+      data-testid="suggest-idea"
+    >
+      {t.board.suggest}
+    </button>
+    <dialog ref={panel} className="panel" aria-labelledby="new-idea-title" onClick={(e) => e.target === panel.current && panel.current.close()}>
     <form
-      className="post-form page-section"
+      className="panel-form"
       onSubmit={async (e) => {
         e.preventDefault();
         setBusy(true);
@@ -49,6 +66,7 @@ function NewIdea({ boardId, navigate, onAdded }: { boardId: string; navigate: Na
           onAdded(post);
           setTitle("");
           setBody("");
+          panel.current!.close();
         } catch (err) {
           setError(errorText(t, err));
         } finally {
@@ -56,11 +74,16 @@ function NewIdea({ boardId, navigate, onAdded }: { boardId: string; navigate: Na
         }
       }}
     >
-      <h2>{t.board.shareIdea}</h2>
+      <div className="panel-head">
+        <h2 id="new-idea-title">{t.board.shareIdea}</h2>
+        <button type="button" className="btn btn--quiet btn--small" onClick={() => panel.current!.close()}>
+          {t.board.close}
+        </button>
+      </div>
       <div className="field-stack">
         <label className="field">
           <span>{t.board.titlePlaceholder}</span>
-          <input type="text" required maxLength={120} value={title} onChange={(e) => setTitle(e.target.value)} aria-invalid={Boolean(error)} aria-describedby="new-idea-help" data-testid="post-title-input" />
+          <input ref={titleInput} type="text" required maxLength={120} value={title} onChange={(e) => setTitle(e.target.value)} aria-invalid={Boolean(error)} aria-describedby="new-idea-help" data-testid="post-title-input" />
         </label>
         {similar.length > 0 && (
           <div className="similar" data-testid="similar">
@@ -97,6 +120,8 @@ function NewIdea({ boardId, navigate, onAdded }: { boardId: string; navigate: Na
         {error ?? ""}
       </p>
     </form>
+    </dialog>
+    </>
   );
 }
 
@@ -143,7 +168,7 @@ function PostRow({ post, boardId, statuses, member, navigate }: { post: PostSumm
           {post.title}
         </a>
         <div className="post-meta">
-          {post.status !== statuses[0].id && <span className={`badge badge--${post.status}`}>{statusLabel(t, statuses.find((s) => s.id === post.status) ?? { id: post.status, label: "" })}</span>}
+          <span className={`badge badge--${post.status}`}>{statusLabel(t, statuses.find((s) => s.id === post.status) ?? { id: post.status, label: "" })}</span>
           <span>{format(t.board.by, { name: post.author, date: formatDate(post.createdAt, lang) })}</span>
           <span>{format(t.board.comments, { n: post.comments })}</span>
         </div>
@@ -196,19 +221,30 @@ export function Board({ id, navigate }: { id: string; navigate: Navigate }) {
     );
   }
 
+  const [beforeProduct, afterProduct] = t.board.membersOnlyProduct.split("{product}");
+
   return (
-    <div style={board.color ? ({ "--color-accent": board.color, "--color-accent-2": board.color } as CSSProperties) : undefined}>
+    <div className="board-page" style={board.color ? ({ "--color-accent": board.color, "--color-accent-2": board.color } as CSSProperties) : undefined}>
       <div className="section-head board-head">
         {board.logo && <img className="board-logo" src={board.logo} alt="" />}
         <h1>
           {board.name} {board.visibility === "team" && <span className="badge badge--team">{t.boards.visibilityTeam}</span>}
         </h1>
+        {board.member && <NewIdea boardId={id} navigate={navigate} onAdded={(p) => setPosts((ps) => (ps ? [p, ...ps] : [p]))} />}
       </div>
 
-      {board.member ? (
-        <NewIdea boardId={id} navigate={navigate} onAdded={(p) => setPosts((ps) => (ps ? [p, ...ps] : [p]))} />
-      ) : (
-        <p className="members-only stock">{t.board.membersOnly}</p>
+      {!board.member && (
+        <p className="members-only stock">
+          {board.productName ? (
+            <>
+              {beforeProduct}
+              {board.productUrl ? <a href={board.productUrl} rel="noopener">{board.productName}</a> : board.productName}
+              {afterProduct}
+            </>
+          ) : (
+            t.board.membersOnly
+          )}
+        </p>
       )}
 
       <div className="toolbar">

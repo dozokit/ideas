@@ -16,13 +16,23 @@
 .board-head { align-items: center; justify-content: flex-start; }
 .board-logo { display: block; height: 40px; width: auto; max-width: 160px; object-fit: contain; }
 
-/* Post form, and the ideas already suggested that match its title */
-.post-form { margin-bottom: var(--space-2xl); }
+/* "Suggest an idea": a panel from the right (a sheet from the bottom on phones) with the form, and
+   the ideas already suggested that match its title */
+.board-head .suggest-btn { margin-left: auto; }
+.panel { margin: 0 0 0 auto; width: min(32rem, 100%); max-width: none; height: 100dvh; max-height: none; padding: 0; border: 0; background: var(--color-paper); color: var(--color-ink); box-shadow: var(--cast-stock); }
+.panel[open] { animation: panel-in var(--dur-short) var(--ease-out); }
+.panel::backdrop { background: color-mix(in oklab, var(--color-ink) 35%, transparent); }
+.panel-form { min-height: 100%; padding: var(--space-lg); }
+.panel-head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-sm); margin-bottom: var(--space-md); }
+.panel-head h2 { font-size: var(--text-xl); }
+@keyframes panel-in { from { transform: translateX(100%); } }
+@keyframes sheet-in { from { transform: translateY(100%); } }
+@media (prefers-reduced-motion: reduce) { .panel[open] { animation: none; } }
 .similar { display: grid; gap: var(--space-2xs); }
 .similar ul { margin: 0; padding-left: var(--space-md); display: grid; gap: var(--space-2xs); font-size: var(--text-sm); }
 
 /* Post list */
-.post-list { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-sm); }
+.post-list { list-style: none; margin: var(--space-md) 0 0; padding: 0; display: grid; gap: var(--space-sm); }
 .post-row { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: var(--space-md); align-items: start; padding: var(--space-md); }
 .post-main { min-width: 0; display: grid; gap: var(--space-2xs); }
 .post-title { font-size: var(--text-md); font-weight: 500; text-decoration: none; color: inherit; }
@@ -56,6 +66,7 @@
 .comment { border-top: 1px solid var(--color-rule); padding-top: var(--space-sm); }
 .comment-meta { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--space-sm); margin-bottom: var(--space-2xs); color: var(--color-muted); font-size: var(--text-xs); }
 .comment-author { font-weight: 500; color: var(--color-ink-2); }
+.comment--official { border-top: 0; border-left: 3px solid var(--color-accent-2); padding: var(--space-sm) var(--space-md); border-radius: var(--radius-card); background: var(--color-paper-2); }
 
 /* In place of a form for people who didn't come through the board's signed link; and the full
    gate for a private board */
@@ -63,23 +74,23 @@
 .gate { max-width: 28rem; margin: var(--space-2xl) auto; padding: var(--space-xl) var(--space-lg); display: grid; gap: var(--space-sm); text-align: left; }
 .gate h1 { font-size: var(--text-xl); }
 
-/* Admin: boards list and per-board panel */
-.admin-board-list { display: grid; gap: var(--space-xl); }
-.admin-board { border-top: 1px solid var(--color-ink-2); padding-top: var(--space-md); padding-bottom: var(--space-sm); }
-.admin-board-head { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-sm); margin-bottom: var(--space-md); }
-.admin-board-head h3 { font-size: var(--text-lg); }
+/* Admin: board cards, a board's settings tabs, and the numbered steps to connect it */
+.admin-card { display: grid; gap: var(--space-sm); align-content: start; }
+.admin-card h2 { margin: 0; }
+.admin-card .help { margin: 0; }
+.settings-tabs { width: fit-content; max-width: 100%; overflow-x: auto; margin-bottom: var(--space-lg); }
+.steps { margin: 0; padding-left: var(--space-lg); display: grid; gap: var(--space-lg); max-width: 40rem; }
+.steps > li { display: grid; gap: var(--space-xs); justify-items: start; }
+.steps h3 { font-size: var(--text-md); }
+.steps .help { margin: 0; }
+.steps-title { font-size: var(--text-lg); margin: var(--space-xl) 0 var(--space-md); }
 .sso-row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-sm); }
 .sso-secret { font-family: var(--font-outlier); font-size: var(--text-sm); word-break: break-all; }
-.board-link { margin-bottom: var(--space-md); }
 .logo-field { display: grid; gap: var(--space-2xs); }
 .logo-preview { display: flex; align-items: center; gap: var(--space-sm); }
 .statuses { display: grid; gap: var(--space-xs); margin: 0; padding: 0; border: 0; }
-.statuses legend { padding: 0; margin-bottom: var(--space-2xs); font-size: var(--text-sm); font-weight: 500; }
 .status-row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-xs); }
 .status-row input { flex: 1 1 10rem; }
-.developer { margin-top: var(--space-md); }
-.developer summary { cursor: pointer; font-weight: 500; }
-.developer[open] { display: grid; gap: var(--space-sm); }
 .share-count { margin-top: var(--space-md); }
 .share-count label { display: flex; align-items: center; gap: 0.5rem; font-weight: 600; }
 .share-count input { width: 1.1rem; height: 1.1rem; accent-color: var(--color-ink); }
@@ -88,4 +99,8 @@
   .board-list { grid-template-columns: 1fr; }
   .post-row { grid-template-columns: 44px minmax(0, 1fr); gap: var(--space-sm); padding: var(--space-sm); }
   .vote-btn { width: 44px; min-height: 44px; }
+  .board-head .suggest-btn { position: fixed; z-index: var(--z-sticky-nav); left: 16px; right: 16px; bottom: 16px; min-height: 48px; }
+  .board-page { padding-bottom: 72px; }
+  .panel { margin: auto 0 0; width: 100%; }
+  .panel[open] { animation-name: sheet-in; }
 }

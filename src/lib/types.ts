@@ -17,6 +17,8 @@ export interface BoardSummary {
   statuses: BoardStatus[];
   logo: string | null;
   color: string | null;
+  productName: string | null;
+  productUrl: string | null;
   createdAt: number;
 }
 
@@ -51,6 +53,7 @@ export interface Comment {
   id: number;
   body: string;
   author: string;
+  official: boolean;
   createdAt: number;
 }
 

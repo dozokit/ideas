@@ -2,6 +2,16 @@
 
 How to update your copy: [dozokit.com/ideas/guide#updating](https://dozokit.com/ideas/guide#updating).
 
+## 1.2.0 – 2026-10-29
+
+- The admin page is now three screens: **Admin** shows one card per board (Copy link, Open, Settings) and creates a board behind **New board**; a board's **Settings** has the tabs Look, Statuses and Connect to your product; **Settings** in the top bar holds updates, the version and the password.
+- **Connect to your product** walks you through it step by step: **Copy instructions for your developer** copies a ready-to-paste brief with the board's link, secret and an example, and **Open as a test person** opens the board as a made-up member.
+- Signed in to the admin page, you suggest, vote and comment on any board as "<board name> team"; your comments show as **Official answer**.
+- Each board can name your product and link to it: visitors who can't vote yet are told to open Ideas from it.
+- On a board, the ideas come first: **Suggest an idea** opens the form in a side panel (a full-height sheet on phones), where matching ideas still show under the title.
+- Whoever suggests an idea votes for it.
+- Every idea in the list shows its status, the first one included.
+
 ## 1.1.1 – 2026-10-29
 
 - Fixes the weekly backup schedule, which Cloudflare refused on deploy.

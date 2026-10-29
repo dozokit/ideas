@@ -4,23 +4,10 @@ import { errorText, format, useT } from "../i18n";
 import type { BoardStatus, BoardSummary, Visibility } from "../lib/types";
 import { TurnOnUpdates } from "./TurnOnUpdates";
 import { ChangePassword } from "./Password";
+import type { Navigate } from "../App";
 
 // The colour picker's starting point when a board has none: the app's own accent (--color-accent-2).
 const DEFAULT_COLOR = "#bb3d31";
-
-function mintSnippet(boardId: string, audience: string, secret: string): string {
-  return [
-    `const crypto = require("crypto");`,
-    `const b64url = (buf) => buf.toString("base64url");`,
-    `const header = b64url(Buffer.from(JSON.stringify({ alg: "HS256" })));`,
-    `const payload = b64url(Buffer.from(JSON.stringify({`,
-    `  name: "<their name>", email: "<their email>", sub: "<their id in your product>",`,
-    `  iss: "${boardId}", aud: "${audience}", exp: Math.floor(Date.now() / 1000) + 120, jti: crypto.randomUUID(),`,
-    `})));`,
-    `const sig = crypto.createHmac("sha256", "${secret}").update(header + "." + payload).digest("base64url");`,
-    `const url = \`${audience}/sso?token=\${header}.\${payload}.\${sig}&return_to=/b/${boardId}\`;`,
-  ].join("\n");
-}
 
 // Read as a data URL, saved with the board and only ever shown as <img src>.
 function LogoField({ logo, onChange }: { logo: string | null; onChange: (logo: string | null) => void }) {
@@ -57,16 +44,47 @@ function LogoField({ logo, onChange }: { logo: string | null; onChange: (logo: s
   );
 }
 
-function AdminBoardPanel({ board, onSaved }: { board: BoardSummary; onSaved: (b: BoardSummary) => void }) {
+// A board's full link, with Copy and Open.
+function BoardLink({ id }: { id: string }) {
   const { t } = useT();
-  const link = `${location.origin}/b/${board.id}`;
-  const [visibility, setVisibility] = useState<Visibility>(board.visibility);
-  const [logo, setLogo] = useState(board.logo);
-  const [color, setColor] = useState(board.color);
-  const [statuses, setStatuses] = useState<BoardStatus[]>(board.statuses);
+  const link = `${location.origin}/b/${id}`;
+  const [copied, setCopied] = useState(false);
+  return (
+    <div className="sso-row">
+      <code className="sso-secret">{link}</code>
+      <button
+        type="button"
+        className="btn btn--quiet btn--small"
+        onClick={async () => {
+          await navigator.clipboard.writeText(link);
+          setCopied(true);
+          setTimeout(() => setCopied(false), 1500);
+        }}
+      >
+        {copied ? t.admin.ssoCopied : t.admin.copyLink}
+      </button>
+      <a className="btn btn--quiet btn--small" href={link} target="_blank" rel="noopener">
+        {t.admin.openLink}
+      </a>
+    </div>
+  );
+}
+
+// /admin/b/:id: a board's settings, in three tabs.
+export function BoardSettings({ id, navigate }: { id: string; navigate: Navigate }) {
+  const { t } = useT();
+  const [board, setBoard] = useState<BoardSummary | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [tab, setTab] = useState<"look" | "statuses" | "connect">("look");
+  const [name, setName] = useState("");
+  const [visibility, setVisibility] = useState<Visibility>("public");
+  const [logo, setLogo] = useState<string | null>(null);
+  const [color, setColor] = useState<string | null>(null);
+  const [productName, setProductName] = useState("");
+  const [productUrl, setProductUrl] = useState("");
+  const [statuses, setStatuses] = useState<BoardStatus[]>([]);
   const [saveBusy, setSaveBusy] = useState(false);
   const [saveMsg, setSaveMsg] = useState<string | null>(null);
-  const [linkCopied, setLinkCopied] = useState(false);
   const [sso, setSso] = useState<{ secret: string; audience: string } | null>(null);
   const [revealed, setRevealed] = useState(false);
   const [confirmRotate, setConfirmRotate] = useState(false);
@@ -74,14 +92,28 @@ function AdminBoardPanel({ board, onSaved }: { board: BoardSummary; onSaved: (b:
   const [ssoError, setSsoError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
-  async function save(e: FormEvent) {
+  const show = (b: BoardSummary) => {
+    setBoard(b);
+    setName(b.name);
+    setVisibility(b.visibility);
+    setLogo(b.logo);
+    setColor(b.color);
+    setProductName(b.productName ?? "");
+    setProductUrl(b.productUrl ?? "");
+    setStatuses(b.statuses);
+  };
+
+  useEffect(() => {
+    api<BoardSummary>(`/api/boards/${id}`).then(show, (e) => setError(errorText(t, e)));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id]);
+
+  async function save(e: FormEvent, changes: Partial<BoardSummary>) {
     e.preventDefault();
     setSaveBusy(true);
     setSaveMsg(null);
     try {
-      const b = await api<BoardSummary>(`/api/boards/${board.id}`, { method: "PATCH", body: JSON.stringify({ visibility, logo, color, statuses }) });
-      onSaved(b);
-      setStatuses(b.statuses);
+      show(await api<BoardSummary>(`/api/boards/${id}`, { method: "PATCH", body: JSON.stringify(changes) }));
       setSaveMsg(t.admin.saved);
     } catch (err) {
       setSaveMsg(errorText(t, err));
@@ -97,27 +129,27 @@ function AdminBoardPanel({ board, onSaved }: { board: BoardSummary; onSaved: (b:
       return next;
     });
 
-  async function reveal() {
+  async function loadSso() {
     setSsoError(null);
-    if (!sso) {
-      setSsoBusy(true);
-      try {
-        setSso(await api(`/api/boards/${board.id}/sso`));
-      } catch (err) {
-        setSsoError(errorText(t, err));
-        setSsoBusy(false);
-        return;
-      }
+    if (sso) return sso;
+    setSsoBusy(true);
+    try {
+      const s = await api<{ secret: string; audience: string }>(`/api/boards/${id}/sso`);
+      setSso(s);
+      return s;
+    } catch (err) {
+      setSsoError(errorText(t, err));
+      return null;
+    } finally {
       setSsoBusy(false);
     }
-    setRevealed(true);
   }
 
   async function rotate() {
     setSsoBusy(true);
     setSsoError(null);
     try {
-      const r = await api<{ secret: string }>(`/api/boards/${board.id}/rotate-secret`, { method: "POST" });
+      const r = await api<{ secret: string }>(`/api/boards/${id}/rotate-secret`, { method: "POST" });
       setSso((s) => ({ secret: r.secret, audience: s?.audience ?? location.origin }));
       setRevealed(true);
     } catch (err) {
@@ -128,53 +160,179 @@ function AdminBoardPanel({ board, onSaved }: { board: BoardSummary; onSaved: (b:
     }
   }
 
-  async function copySnippet() {
-    if (!sso) return;
-    await navigator.clipboard.writeText(mintSnippet(board.id, sso.audience, sso.secret));
+  // A plain-text brief, ready to paste to a developer or a coding assistant, secret included.
+  async function copyInstructions() {
+    const s = await loadSso();
+    if (!s) return;
+    const snippet = [
+      `const crypto = require("crypto");`,
+      `const b64url = (buf) => buf.toString("base64url");`,
+      `const header = b64url(Buffer.from(JSON.stringify({ alg: "HS256" })));`,
+      `const payload = b64url(Buffer.from(JSON.stringify({`,
+      `  name: "<their name>", email: "<their email>", sub: "<their id in your product>",`,
+      `  iss: "${id}", aud: "${s.audience}", exp: Math.floor(Date.now() / 1000) + 120, jti: crypto.randomUUID(),`,
+      `})));`,
+      `const sig = crypto.createHmac("sha256", "${s.secret}").update(header + "." + payload).digest("base64url");`,
+      `const url = \`${s.audience}/sso?token=\${header}.\${payload}.\${sig}&return_to=/b/${id}\`;`,
+    ].join("\n");
+    await navigator.clipboard.writeText(format(t.admin.devBrief, { name: board!.name, origin: s.audience, id, secret: s.secret, snippet }));
     setCopied(true);
-    setTimeout(() => setCopied(false), 1500);
+    setTimeout(() => setCopied(false), 2500);
   }
 
-  return (
-    <div className="admin-board">
-      <div className="admin-board-head">
-        <h3>{board.name}</h3>
-        <span className={board.visibility === "team" ? "badge badge--team" : "badge"}>{board.visibility === "team" ? t.admin.visibilityTeam : t.admin.visibilityPublic}</span>
+  if (error) return <p className="help help--error">{error}</p>;
+  if (!board) {
+    return (
+      <div className="skeleton">
+        <span />
+        <span />
       </div>
-      <div className="sso-row board-link">
-        <code className="sso-secret">{link}</code>
-        <button
-          type="button"
-          className="btn btn--quiet btn--small"
-          onClick={async () => {
-            await navigator.clipboard.writeText(link);
-            setLinkCopied(true);
-            setTimeout(() => setLinkCopied(false), 1500);
-          }}
-        >
-          {linkCopied ? t.admin.ssoCopied : t.admin.copyLink}
+    );
+  }
+
+  const saveRow = (
+    <>
+      <div className="field-actions">
+        <button type="submit" className="btn btn--ink" disabled={saveBusy}>
+          {t.admin.save}
         </button>
-        <a className="btn btn--quiet btn--small" href={link} target="_blank" rel="noopener">
-          {t.admin.openLink}
-        </a>
       </div>
-      <form onSubmit={save}>
-        <div className="field-stack">
-          <label className="field">
-            <span>{t.admin.fieldVisibility}</span>
-            <select value={visibility} onChange={(e) => setVisibility(e.target.value as Visibility)}>
-              <option value="public">{t.admin.visibilityPublic}</option>
-              <option value="team">{t.admin.visibilityTeam}</option>
-            </select>
-          </label>
-          <p className="help">{t.admin.visibilityHelp}</p>
-          <LogoField logo={logo} onChange={setLogo} />
-          <label className="field">
-            <span>{t.admin.fieldColor}</span>
-            <input type="color" value={color ?? DEFAULT_COLOR} onChange={(e) => setColor(e.target.value)} />
-          </label>
+      <p className={saveMsg && saveMsg !== t.admin.saved ? "help help--error" : "help"} role="status">
+        {saveMsg ?? ""}
+      </p>
+    </>
+  );
+
+  const signedSteps = (
+    <ol className="steps">
+      <li>
+        <h3>{t.admin.connectStep1}</h3>
+        <p className="help">{t.admin.connectStep1Help}</p>
+      </li>
+      <li>
+        <h3>{t.admin.connectStep2}</h3>
+        <p className="help">{t.admin.connectStep2Help}</p>
+        <div className="sso-row">
+          <button type="button" className="btn btn--ink btn--small" disabled={ssoBusy} onClick={copyInstructions} data-testid="copy-instructions">
+            {copied ? t.admin.instructionsCopied : t.admin.copyInstructions}
+          </button>
+        </div>
+        <div className="sso-row">
+          <span className="help">{t.admin.ssoSecretLabel}:</span>
+          {revealed && sso ? (
+            <>
+              <code className="sso-secret">{sso.secret}</code>
+              <button type="button" className="btn btn--quiet btn--small" onClick={() => setRevealed(false)}>
+                {t.admin.ssoHide}
+              </button>
+            </>
+          ) : (
+            <button type="button" className="btn btn--quiet btn--small" disabled={ssoBusy} onClick={async () => setRevealed(Boolean(await loadSso()))}>
+              {t.admin.ssoReveal}
+            </button>
+          )}
+          {confirmRotate ? (
+            <>
+              <span className="help">{t.admin.ssoRotateConfirm}</span>
+              <button type="button" className="btn btn--danger btn--small" disabled={ssoBusy} onClick={rotate}>
+                {t.admin.ssoRotate}
+              </button>
+              <button type="button" className="btn btn--quiet btn--small" onClick={() => setConfirmRotate(false)}>
+                {t.post.deleteCancel}
+              </button>
+            </>
+          ) : (
+            <button type="button" className="btn btn--quiet btn--small" onClick={() => setConfirmRotate(true)}>
+              {t.admin.ssoRotate}
+            </button>
+          )}
+        </div>
+        {ssoError && <p className="help help--error">{ssoError}</p>}
+      </li>
+      <li>
+        <h3>{t.admin.connectStep3}</h3>
+        <p className="help">{t.admin.connectStep3Help}</p>
+        <a className="btn btn--quiet btn--small" href={`/api/boards/${id}/test`} target="_blank" rel="noopener" data-testid="open-as-test">
+          {t.admin.openAsTest}
+        </a>
+      </li>
+    </ol>
+  );
+
+  return (
+    <div className="settings">
+      <a
+        className="crumb"
+        href="/admin"
+        onClick={(e) => {
+          e.preventDefault();
+          navigate("/admin");
+        }}
+      >
+        ← {t.admin.back}
+      </a>
+      <div className="section-head board-head">
+        {board.logo && <img className="board-logo" src={board.logo} alt="" />}
+        <h1>
+          {board.name} <span className={board.visibility === "team" ? "badge badge--team" : "badge"}>{board.visibility === "team" ? t.admin.visibilityTeam : t.admin.visibilityPublic}</span>
+        </h1>
+      </div>
+      <div className="tabs settings-tabs" role="tablist">
+        {(["look", "statuses", "connect"] as const).map((k) => (
+          <button
+            key={k}
+            type="button"
+            className="tab"
+            role="tab"
+            aria-selected={tab === k}
+            onClick={() => {
+              setTab(k);
+              setSaveMsg(null);
+            }}
+          >
+            {{ look: t.admin.tabLook, statuses: t.admin.statusesTitle, connect: t.admin.tabConnect }[k]}
+          </button>
+        ))}
+      </div>
+
+      {tab === "look" && (
+        <form onSubmit={(e) => save(e, { name, visibility, logo, color, productName, productUrl })}>
+          <div className="field-stack">
+            <label className="field">
+              <span>{t.admin.fieldName}</span>
+              <input type="text" required value={name} onChange={(e) => setName(e.target.value)} />
+            </label>
+            <label className="field">
+              <span>{t.admin.fieldVisibility}</span>
+              <select value={visibility} onChange={(e) => setVisibility(e.target.value as Visibility)}>
+                <option value="public">{t.admin.visibilityPublic}</option>
+                <option value="team">{t.admin.visibilityTeam}</option>
+              </select>
+            </label>
+            <p className="help">{t.admin.visibilityHelp}</p>
+            <LogoField logo={logo} onChange={setLogo} />
+            <label className="field">
+              <span>{t.admin.fieldColor}</span>
+              <input type="color" value={color ?? DEFAULT_COLOR} onChange={(e) => setColor(e.target.value)} />
+            </label>
+            <h2>{t.admin.productTitle}</h2>
+            <label className="field">
+              <span>{t.admin.fieldProductName}</span>
+              <input type="text" maxLength={100} value={productName} onChange={(e) => setProductName(e.target.value)} data-testid="product-name" />
+            </label>
+            <label className="field">
+              <span>{t.admin.fieldProductUrl}</span>
+              <input type="text" inputMode="url" maxLength={500} placeholder="https://" value={productUrl} onChange={(e) => setProductUrl(e.target.value)} data-testid="product-url" />
+            </label>
+            <p className="help">{t.admin.productHelp}</p>
+          </div>
+          {saveRow}
+        </form>
+      )}
+
+      {tab === "statuses" && (
+        <form onSubmit={(e) => save(e, { statuses })}>
           <fieldset className="statuses">
-            <legend>{t.admin.statusesTitle}</legend>
             {statuses.map((s, i) => (
               <div className="status-row" key={s.id}>
                 <input
@@ -204,67 +362,26 @@ function AdminBoardPanel({ board, onSaved }: { board: BoardSummary; onSaved: (b:
             </div>
             <p className="help">{t.admin.statusesHelp}</p>
           </fieldset>
-        </div>
-        <div className="field-actions">
-          <button type="submit" className="btn btn--ink" disabled={saveBusy}>
-            {t.admin.save}
-          </button>
-        </div>
-        <p className={saveMsg && saveMsg !== t.admin.saved ? "help help--error" : "help"} role="status">
-          {saveMsg ?? ""}
-        </p>
-      </form>
+          {saveRow}
+        </form>
+      )}
 
-      <details className="developer">
-        <summary>{t.admin.developerTitle}</summary>
-        <p className="help">{t.admin.developerLead}</p>
-        <div className="sso-row">
-          {revealed && sso ? (
-            <>
-              <code className="sso-secret">{sso.secret}</code>
-              <button type="button" className="btn btn--quiet btn--small" onClick={() => setRevealed(false)}>
-                {t.admin.ssoHide}
-              </button>
-            </>
-          ) : (
-            <button type="button" className="btn btn--quiet btn--small" disabled={ssoBusy} onClick={reveal}>
-              {t.admin.ssoReveal}
-            </button>
-          )}
-          {confirmRotate ? (
-            <>
-              <span className="help">{t.admin.ssoRotateConfirm}</span>
-              <button type="button" className="btn btn--danger btn--small" disabled={ssoBusy} onClick={rotate}>
-                {t.admin.ssoRotate}
-              </button>
-              <button type="button" className="btn btn--quiet btn--small" onClick={() => setConfirmRotate(false)}>
-                {t.post.deleteCancel}
-              </button>
-            </>
-          ) : (
-            <button type="button" className="btn btn--quiet btn--small" onClick={() => setConfirmRotate(true)}>
-              {t.admin.ssoRotate}
-            </button>
-          )}
-        </div>
-        {ssoError && <p className="help help--error">{ssoError}</p>}
-        {sso && (
+      {tab === "connect" &&
+        (board.visibility === "public" ? (
           <>
-            <p className="help">
-              {t.admin.ssoAudience}: <code>{sso.audience}</code>
-            </p>
-            <h4>{t.admin.ssoSnippetTitle}</h4>
-            <div className="code">
-              <pre>
-                <code>{mintSnippet(board.id, sso.audience, revealed ? sso.secret : "<secret>")}</code>
-              </pre>
-              <button type="button" className="btn btn--quiet btn--small code-copy" disabled={!revealed} onClick={copySnippet}>
-                {copied ? t.admin.ssoCopied : t.admin.ssoCopy}
-              </button>
-            </div>
+            <ol className="steps">
+              <li>
+                <h3>{t.admin.connectPublicStep}</h3>
+                <BoardLink id={id} />
+                <p className="help">{t.admin.connectPublicHelp}</p>
+              </li>
+            </ol>
+            <h2 className="steps-title">{t.admin.connectSignedTitle}</h2>
+            {signedSteps}
           </>
-        )}
-      </details>
+        ) : (
+          signedSteps
+        ))}
     </div>
   );
 }
@@ -304,11 +421,12 @@ function ShareCount({ initial }: { initial: boolean | undefined }) {
   );
 }
 
-export function Admin() {
+// /admin: one card per board, and the new-board form behind "New board".
+export function Admin({ navigate }: { navigate: Navigate }) {
   const { t } = useT();
-  const [boards, setBoards] = useState<BoardSummary[] | null>(null);
+  const [boards, setBoards] = useState<(BoardSummary & { ideas: number })[] | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [release, setRelease] = useState<{ version: string; latest: string | null; share: boolean } | null>(null);
+  const [creating, setCreating] = useState(false);
   const [id, setId] = useState("");
   const [name, setName] = useState("");
   const [visibility, setVisibility] = useState<Visibility>("public");
@@ -318,8 +436,7 @@ export function Admin() {
   const [createBusy, setCreateBusy] = useState(false);
 
   useEffect(() => {
-    api<BoardSummary[]>("/api/boards").then(setBoards, (e) => setError(errorText(t, e)));
-    api<typeof release>("/api/version").then(setRelease, () => {});
+    api<typeof boards>("/api/boards").then(setBoards, (e) => setError(errorText(t, e)));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -329,12 +446,13 @@ export function Admin() {
     setCreateError(null);
     try {
       const b = await api<BoardSummary>("/api/boards", { method: "POST", body: JSON.stringify({ id, name, visibility, logo, color }) });
-      setBoards((bs) => [b, ...(bs ?? [])]);
+      setBoards((bs) => [{ ...b, ideas: 0 }, ...(bs ?? [])]);
       setId("");
       setName("");
       setVisibility("public");
       setLogo(null);
       setColor(null);
+      setCreating(false);
     } catch (err) {
       setCreateError(errorText(t, err));
     } finally {
@@ -344,77 +462,121 @@ export function Admin() {
 
   return (
     <div className="settings">
-      <h1>{t.admin.title}</h1>
-
-      <form className="page-section" onSubmit={createBoard}>
-        <h2>{t.admin.newBoardTitle}</h2>
-        <div className="field-stack">
-          <label className="field">
-            <span>{t.admin.fieldId}</span>
-            <input type="text" required pattern="[a-z0-9-]{2,40}" value={id} onChange={(e) => setId(e.target.value)} aria-describedby="board-link-preview" data-testid="board-id-input" />
-          </label>
-          <p id="board-link-preview" className="help">
-            <code>
-              {location.origin}/b/{id || "…"}
-            </code>
-          </p>
-          <label className="field">
-            <span>{t.admin.fieldName}</span>
-            <input type="text" required value={name} onChange={(e) => setName(e.target.value)} data-testid="board-name-input" />
-          </label>
-          <label className="field">
-            <span>{t.admin.fieldVisibility}</span>
-            <select value={visibility} onChange={(e) => setVisibility(e.target.value as Visibility)}>
-              <option value="public">{t.admin.visibilityPublic}</option>
-              <option value="team">{t.admin.visibilityTeam}</option>
-            </select>
-          </label>
-          <p className="help">{t.admin.visibilityHelp}</p>
-          <LogoField logo={logo} onChange={setLogo} />
-          <label className="field">
-            <span>{t.admin.fieldColor}</span>
-            <input type="color" value={color ?? DEFAULT_COLOR} onChange={(e) => setColor(e.target.value)} />
-          </label>
-        </div>
-        <div className="field-actions">
-          <button type="submit" className="btn btn--ink" disabled={createBusy} data-testid="board-create-submit">
-            {t.admin.createSubmit}
+      <div className="section-head section-head--start">
+        <h1>{t.boards.title}</h1>
+        {!creating && (
+          <button type="button" className="btn btn--ink" onClick={() => setCreating(true)} data-testid="new-board">
+            + {t.admin.newBoardTitle}
           </button>
-        </div>
-        <p className={createError ? "help help--error" : "help"} role="status">
-          {createError ?? t.admin.fieldIdHelp}
-        </p>
-      </form>
+        )}
+      </div>
 
-      <section className="page-section">
-        <h2>{t.boards.title}</h2>
-        {error && <p className="help help--error">{error}</p>}
-        {!error && !boards && (
-          <div className="skeleton">
-            <span />
-            <span />
+      {creating && (
+        <form className="page-section" onSubmit={createBoard}>
+          <h2>{t.admin.newBoardTitle}</h2>
+          <div className="field-stack">
+            <label className="field">
+              <span>{t.admin.fieldId}</span>
+              <input type="text" required pattern="[a-z0-9-]{2,40}" value={id} onChange={(e) => setId(e.target.value)} aria-describedby="board-link-preview" data-testid="board-id-input" />
+            </label>
+            <p id="board-link-preview" className="help">
+              <code>
+                {location.origin}/b/{id || "…"}
+              </code>
+            </p>
+            <label className="field">
+              <span>{t.admin.fieldName}</span>
+              <input type="text" required value={name} onChange={(e) => setName(e.target.value)} data-testid="board-name-input" />
+            </label>
+            <label className="field">
+              <span>{t.admin.fieldVisibility}</span>
+              <select value={visibility} onChange={(e) => setVisibility(e.target.value as Visibility)}>
+                <option value="public">{t.admin.visibilityPublic}</option>
+                <option value="team">{t.admin.visibilityTeam}</option>
+              </select>
+            </label>
+            <p className="help">{t.admin.visibilityHelp}</p>
+            <LogoField logo={logo} onChange={setLogo} />
+            <label className="field">
+              <span>{t.admin.fieldColor}</span>
+              <input type="color" value={color ?? DEFAULT_COLOR} onChange={(e) => setColor(e.target.value)} />
+            </label>
           </div>
-        )}
-        {!error && boards && boards.length === 0 && <p className="help">{t.boards.empty}</p>}
-        {!error && boards && boards.length > 0 && (
-          <div className="admin-board-list">
-            {boards.map((b) => (
-              <AdminBoardPanel key={b.id} board={b} onSaved={(nb) => setBoards((bs) => (bs ?? []).map((x) => (x.id === nb.id ? nb : x)))} />
-            ))}
+          <div className="field-actions">
+            <button type="submit" className="btn btn--ink" disabled={createBusy} data-testid="board-create-submit">
+              {t.admin.createSubmit}
+            </button>
+            <button type="button" className="btn btn--quiet" onClick={() => setCreating(false)}>
+              {t.admin.cancel}
+            </button>
           </div>
-        )}
-      </section>
+          <p className={createError ? "help help--error" : "help"} role="status">
+            {createError ?? t.admin.fieldIdHelp}
+          </p>
+        </form>
+      )}
+
+      {error && <p className="help help--error">{error}</p>}
+      {!error && !boards && (
+        <div className="skeleton">
+          <span />
+          <span />
+        </div>
+      )}
+      {!error && boards && boards.length === 0 && !creating && (
+        <div className="empty">
+          <p>{t.admin.boardsEmpty}</p>
+        </div>
+      )}
+      {!error && boards && boards.length > 0 && (
+        <ul className="board-list">
+          {boards.map((b) => (
+            <li key={b.id} className="board-card stock admin-card">
+              {b.logo && <img className="board-logo" src={b.logo} alt="" />}
+              <h2>
+                {b.name} <span className={b.visibility === "team" ? "badge badge--team" : "badge"}>{b.visibility === "team" ? t.admin.visibilityTeam : t.admin.visibilityPublic}</span>
+              </h2>
+              <p className="help">{format(t.admin.ideasCount, { n: b.ideas })}</p>
+              <BoardLink id={b.id} />
+              <div>
+                <a
+                  className="btn btn--quiet btn--small"
+                  href={`/admin/b/${b.id}`}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    navigate(`/admin/b/${b.id}`);
+                  }}
+                >
+                  {t.nav.settings}
+                </a>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+// /admin/settings: updates, version and password.
+export function Settings() {
+  const { t } = useT();
+  const [release, setRelease] = useState<{ version: string; latest: string | null; share: boolean } | null>(null);
+
+  useEffect(() => {
+    api<typeof release>("/api/version").then(setRelease, () => {});
+  }, []);
+
+  return (
+    <div className="settings">
+      <h1>{t.nav.settings}</h1>
 
       <section className="page-section">
         <h2>{t.admin.updatesTitle}</h2>
+        {release && <p>{format(t.admin.versionLine, { version: release.version })}</p>}
+        {release?.latest && <p className="update">{format(t.admin.latestAvailable, { latest: release.latest })}</p>}
         <TurnOnUpdates />
         <ShareCount initial={release?.share} />
-      </section>
-
-      <section className="page-section">
-        <h2>{t.admin.versionTitle}</h2>
-        {release && <p className="help">{format(t.admin.versionLine, { version: release.version })}</p>}
-        {release?.latest && <p className="update">{format(t.admin.latestAvailable, { latest: release.latest })}</p>}
       </section>
 
       <section className="page-section">

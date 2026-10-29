@@ -131,6 +131,7 @@ input::placeholder, textarea::placeholder { color: color-mix(in oklab, var(--col
 /* Sections */
 .section-head { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: var(--space-sm) var(--space-lg); margin-bottom: var(--space-lg); }
 .section-head h1 { font-size: var(--text-display); }
+.section-head--start { justify-content: flex-start; align-items: center; }
 .page-section + .page-section { margin-top: var(--space-2xl); }
 .page-section > h2 { font-size: var(--text-xl); margin-bottom: var(--space-md); }
 
@@ -144,13 +145,6 @@ input::placeholder, textarea::placeholder { color: color-mix(in oklab, var(--col
 .help { min-height: 1lh; margin-top: var(--space-xs); font-size: var(--text-xs); color: var(--color-muted); }
 .help--error { color: var(--color-error); }
 .danger { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-sm); margin-top: var(--space-md); font-size: var(--text-sm); }
-
-/* A copyable code block (the signed-link Node snippet) */
-.code { position: relative; border-radius: var(--radius-card); background: var(--color-board); color: var(--color-board-type); }
-.code pre { margin: 0; padding: var(--space-md) 6.5rem var(--space-md) var(--space-md); overflow-x: auto; font-family: var(--font-outlier); font-size: var(--text-sm); line-height: 1.6; }
-.code code { background: none; padding: 0; color: inherit; white-space: pre-wrap; overflow-wrap: anywhere; }
-.code-copy { position: absolute; top: var(--space-xs); right: var(--space-xs); color: var(--color-board-type); box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--color-board-type) 30%, transparent); }
-.code-copy:hover:not(:disabled) { background: var(--color-ink-2); }
 
 .settings { max-width: 52rem; }
 .settings > h1 { margin-bottom: var(--space-xl); }

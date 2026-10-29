@@ -22,7 +22,8 @@ const page = (status: number, title: string, text: string) =>
     { status, headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store", ...FRAME_HEADERS } },
   );
 
-// The SPA: / (boards list), /b/:id (a board), /b/:id/p/:postId (a post), /admin (owner only).
+// The SPA: / (boards list), /b/:id (a board), /b/:id/p/:postId (a post), and for the owner only
+// /admin (boards), /admin/b/:id (a board's settings) and /admin/settings.
 // The Worker always serves the same index.html; the app's own tiny router takes it from there.
 const isSpaPath = (path: string) => path === "/" || path.startsWith("/b/") || path === "/admin" || path.startsWith("/admin/");
 

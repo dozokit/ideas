@@ -9,7 +9,8 @@ export interface User {
 }
 
 // Everyone comes in through a board's signed link (provider "sso"; older rows may say "google").
-// ext_id is "<board_id>:<sub>", so one board's tool can never impersonate another board's people.
+// ext_id is "<board_id>:<sub>", so one board's tool can never impersonate another board's people;
+// a board's team user, who the admin posts as, is "__team:<board_id>" (boards.ts).
 export async function upsertUser(env: Env, provider: "sso", extId: string, email: string, name: string): Promise<User> {
   const row = await env.DB.prepare(
     `insert into users (provider, ext_id, email, name, created_at) values (?, ?, ?, ?, ?)

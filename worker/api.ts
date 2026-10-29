@@ -2,7 +2,7 @@ import type { Env } from "./index";
 import { currentUser } from "./auth";
 import { changePassword, isAdmin, setupNeeded } from "./admin";
 import { getBoard, access, BOARD_ID, type Board } from "./boards";
-import { randomToken } from "./crypto";
+import { b64url, hmacSign, randomToken } from "./crypto";
 import type { User } from "./users";
 
 const json = (body: unknown, status = 200) => Response.json(body, { status, headers: { "cache-control": "no-store" } });
@@ -47,12 +47,12 @@ function cleanStatuses(raw: unknown): { id: string; label: string }[] | null {
 
 const cleanVisibility = (raw: unknown) => (raw === "public" || raw === "team" ? raw : null);
 
-const boardView = (b: Board) => ({ id: b.id, name: b.name, visibility: b.visibility, statuses: JSON.parse(b.statuses), logo: b.logo, color: b.color, createdAt: b.created_at });
+const boardView = (b: Board) => ({ id: b.id, name: b.name, visibility: b.visibility, statuses: JSON.parse(b.statuses), logo: b.logo, color: b.color, productName: b.product_name, productUrl: b.product_url, createdAt: b.created_at });
 const teamOnly = () => json({ error: "team_only" }, 403);
 const membersOnly = () => json({ error: "members_only" }, 403);
 
-// This copy's release. Raise it with each tag on github.com/dozokit/ideas (v1.1.1) and its CHANGELOG.md entry.
-const VERSION = "1.1.1";
+// This copy's release. Raise it with each tag on github.com/dozokit/ideas (v1.2.0) and its CHANGELOG.md entry.
+const VERSION = "1.2.0";
 
 // This copy's random id and whether it checks for new versions, made on first use.
 async function install(env: Env) {
@@ -100,10 +100,13 @@ export async function me(req: Request, env: Env) {
 
 // ---- boards -------------------------------------------------------------
 
+// The admin also gets each board's number of ideas.
 async function listBoards(env: Env, admin: boolean) {
-  const { results } = admin
-    ? await env.DB.prepare("select * from boards order by created_at desc").all<Board>()
-    : await env.DB.prepare("select * from boards where visibility = 'public' order by created_at desc").all<Board>();
+  if (admin) {
+    const { results } = await env.DB.prepare("select b.*, (select count(*) from posts p where p.board_id = b.id) as ideas from boards b order by created_at desc").all<Board & { ideas: number }>();
+    return json(results.map((b) => ({ ...boardView(b), ideas: b.ideas })));
+  }
+  const { results } = await env.DB.prepare("select * from boards where visibility = 'public' order by created_at desc").all<Board>();
   return json(results.map(boardView));
 }
 
@@ -142,13 +145,20 @@ async function updateBoard(req: Request, env: Env, admin: boolean, id: string) {
   if (color === undefined) return json({ error: "invalid_color" }, 400);
   const statuses = body.statuses === undefined ? JSON.parse(board.statuses) : cleanStatuses(body.statuses);
   if (!statuses) return json({ error: "invalid_statuses" }, 400);
+  const productName = body.productName === undefined ? board.product_name : optionalText(body.productName, 100);
+  if (productName === undefined) return json({ error: "invalid_product_name" }, 400);
+  // Shown as a link to visitors, so https only.
+  const productUrl = body.productUrl === undefined ? board.product_url : optionalText(body.productUrl, 500);
+  if (productUrl === undefined || (productUrl && !/^https:\/\/[^\s/]+\S*$/i.test(productUrl))) return json({ error: "invalid_product_url" }, 400);
   const list = JSON.stringify(statuses);
   await env.DB.batch([
-    env.DB.prepare("update boards set name = ?, visibility = ?, logo = ?, color = ?, statuses = ? where id = ?").bind(name, visibility, logo, color, list, id),
+    env.DB.prepare("update boards set name = ?, visibility = ?, logo = ?, color = ?, statuses = ?, product_name = ?, product_url = ? where id = ?").bind(name, visibility, logo, color, list, productName, productUrl, id),
     // The ideas of a removed status move to the first one.
     env.DB.prepare("update posts set status = ? where board_id = ? and status not in (select json_extract(value, '$.id') from json_each(?))").bind(statuses[0].id, id, list),
+    // The team user's name follows the board's.
+    env.DB.prepare("update users set name = ? where provider = 'sso' and ext_id = ?").bind(`${name} team`, `__team:${id}`),
   ]);
-  return json(boardView({ ...board, name, visibility, logo, color, statuses: list }));
+  return json(boardView({ ...board, name, visibility, logo, color, statuses: list, product_name: productName, product_url: productUrl }));
 }
 
 async function rotateSecret(env: Env, admin: boolean, id: string) {
@@ -165,6 +175,19 @@ async function boardSso(env: Env, admin: boolean, id: string, url: URL) {
   const board = await getBoard(env, id);
   if (!board) return json({ error: "not_found" }, 404);
   return json({ boardId: board.id, secret: board.sso_secret, audience: url.origin });
+}
+
+// "Open as a test person": a signed link minted here for a made-up member, so the admin sees the
+// board exactly as the people their product sends in.
+async function testLink(env: Env, admin: boolean, id: string, url: URL) {
+  if (!admin) return json({ error: "admin_only" }, 403);
+  const board = await getBoard(env, id);
+  if (!board) return json({ error: "not_found" }, 404);
+  const part = (o: object) => b64url(new TextEncoder().encode(JSON.stringify(o)));
+  const claims = { iss: board.id, aud: url.origin, sub: "dozokit-test", name: "Test person", email: "test@example.com", exp: Math.floor(Date.now() / 1000) + 60, jti: crypto.randomUUID() };
+  const signed = `${part({ alg: "HS256" })}.${part(claims)}`;
+  const location = `/sso?token=${signed}.${await hmacSign(signed, board.sso_secret)}&return_to=/b/${board.id}`;
+  return new Response(null, { status: 302, headers: { location, "referrer-policy": "no-referrer", "cache-control": "no-store" } });
 }
 
 async function getBoardInfo(env: Env, id: string, user: User | null, admin: boolean) {
@@ -196,7 +219,8 @@ async function similarPosts(env: Env, url: URL, id: string, user: User | null, a
 async function listPosts(env: Env, url: URL, id: string, user: User | null, admin: boolean) {
   const board = await getBoard(env, id);
   if (!board) return json({ error: "not_found" }, 404);
-  if (!(await access(env, board, user, admin)).see) return teamOnly();
+  const { see, user: actor } = await access(env, board, user, admin);
+  if (!see) return teamOnly();
   const status = url.searchParams.get("status");
   const sort = url.searchParams.get("sort") === "new" ? "p.created_at desc" : "p.votes desc, p.created_at desc";
   const sql =
@@ -205,7 +229,7 @@ async function listPosts(env: Env, url: URL, id: string, user: User | null, admi
     ` from posts p join users u on u.id = p.user_id where p.board_id = ?` +
     (status ? " and p.status = ?" : "") +
     ` order by ${sort} limit 200`;
-  const params = status ? [user?.id ?? -1, board.id, status] : [user?.id ?? -1, board.id];
+  const params = status ? [actor?.id ?? -1, board.id, status] : [actor?.id ?? -1, board.id];
   const { results } = await env.DB.prepare(sql).bind(...params).all<Record<string, unknown>>();
   return json(results.map((r) => ({ id: r.id, title: r.title, status: r.status, votes: r.votes, comments: r.comments, createdAt: r.created_at, author: r.author, voted: Boolean(r.voted) })));
 }
@@ -213,9 +237,9 @@ async function listPosts(env: Env, url: URL, id: string, user: User | null, admi
 async function createPost(req: Request, env: Env, id: string, user: User | null, admin: boolean) {
   const board = await getBoard(env, id);
   if (!board) return json({ error: "not_found" }, 404);
-  const { see, member } = await access(env, board, user, admin);
+  const { see, member, user: actor } = await access(env, board, user, admin);
   if (!see) return teamOnly();
-  if (!user || !member) return membersOnly();
+  if (!actor || !member) return membersOnly();
   const body = (await req.json().catch(() => ({}))) as Record<string, unknown>;
   const title = requiredText(body.title, 120);
   if (!title) return json({ error: "invalid_title" }, 400);
@@ -223,10 +247,12 @@ async function createPost(req: Request, env: Env, id: string, user: User | null,
   if (text === undefined) return json({ error: "invalid_body" }, 400);
   const status = JSON.parse(board.statuses)[0].id;
   const now = Date.now();
-  const row = await env.DB.prepare("insert into posts (board_id, user_id, title, body, status, votes, comments, created_at) values (?, ?, ?, ?, ?, 0, 0, ?) returning id")
-    .bind(board.id, user.id, title, text, status, now)
-    .first<{ id: number }>();
-  return json({ id: row!.id, title, body: text, status, votes: 0, comments: 0, createdAt: now, author: user.name, voted: false }, 201);
+  // Its author votes for it, in the same batch.
+  const [row] = await env.DB.batch([
+    env.DB.prepare("insert into posts (board_id, user_id, title, body, status, votes, comments, created_at) values (?, ?, ?, ?, ?, 1, 0, ?) returning id").bind(board.id, actor.id, title, text, status, now),
+    env.DB.prepare("insert into votes (post_id, user_id, created_at) values (last_insert_rowid(), ?, ?)").bind(actor.id, now),
+  ]);
+  return json({ id: (row.results[0] as { id: number }).id, title, body: text, status, votes: 1, comments: 0, createdAt: now, author: actor.name, voted: true }, 201);
 }
 
 async function getPost(env: Env, id: number, user: User | null, admin: boolean) {
@@ -238,19 +264,20 @@ async function getPost(env: Env, id: number, user: User | null, admin: boolean) 
   if (!post) return json({ error: "not_found" }, 404);
   const board = await getBoard(env, post.board_id);
   if (!board) return json({ error: "not_found" }, 404);
-  const { see, member } = await access(env, board, user, admin);
+  const { see, member, user: actor } = await access(env, board, user, admin);
   if (!see) return teamOnly();
-  const voted = user ? Boolean(await env.DB.prepare("select 1 from votes where post_id = ? and user_id = ?").bind(id, user.id).first()) : false;
+  const voted = actor ? Boolean(await env.DB.prepare("select 1 from votes where post_id = ? and user_id = ?").bind(id, actor.id).first()) : false;
+  // The team user's comments are the board's official answers.
   const { results: comments } = await env.DB.prepare(
-    "select c.id, c.body, c.created_at, u.name as author from comments c join users u on u.id = c.user_id where c.post_id = ? order by c.created_at limit 200",
+    "select c.id, c.body, c.created_at, u.name as author, u.ext_id = ? as official from comments c join users u on u.id = c.user_id where c.post_id = ? order by c.created_at limit 200",
   )
-    .bind(id)
-    .all<{ id: number; body: string; created_at: number; author: string }>();
+    .bind(`__team:${board.id}`, id)
+    .all<{ id: number; body: string; created_at: number; author: string; official: number }>();
   return json({
     post: { id: post.id, title: post.title, body: post.body, status: post.status, votes: post.votes, comments: post.comments, createdAt: post.created_at, author: post.author, voted },
     board: boardView(board),
     member,
-    comments: comments.map((c) => ({ id: c.id, body: c.body, author: c.author, createdAt: c.created_at })),
+    comments: comments.map((c) => ({ id: c.id, body: c.body, author: c.author, official: Boolean(c.official), createdAt: c.created_at })),
   });
 }
 
@@ -264,11 +291,11 @@ async function withPostBoard(env: Env, id: number) {
 async function votePost(env: Env, id: number, user: User | null, admin: boolean) {
   const hit = await withPostBoard(env, id);
   if (!hit) return json({ error: "not_found" }, 404);
-  const { see, member } = await access(env, hit.board, user, admin);
+  const { see, member, user: actor } = await access(env, hit.board, user, admin);
   if (!see) return teamOnly();
-  if (!user || !member) return membersOnly();
+  if (!actor || !member) return membersOnly();
   const [inserted] = await env.DB.batch([
-    env.DB.prepare("insert into votes (post_id, user_id, created_at) values (?, ?, ?) on conflict (post_id, user_id) do nothing").bind(id, user.id, Date.now()),
+    env.DB.prepare("insert into votes (post_id, user_id, created_at) values (?, ?, ?) on conflict (post_id, user_id) do nothing").bind(id, actor.id, Date.now()),
     env.DB.prepare("update posts set votes = (select count(*) from votes where post_id = ?) where id = ?").bind(id, id),
   ]);
   if (!inserted.meta.changes) return json({ error: "already_voted" }, 409);
@@ -278,11 +305,11 @@ async function votePost(env: Env, id: number, user: User | null, admin: boolean)
 async function unvotePost(env: Env, id: number, user: User | null, admin: boolean) {
   const hit = await withPostBoard(env, id);
   if (!hit) return json({ error: "not_found" }, 404);
-  const { see, member } = await access(env, hit.board, user, admin);
+  const { see, member, user: actor } = await access(env, hit.board, user, admin);
   if (!see) return teamOnly();
-  if (!user || !member) return membersOnly();
+  if (!actor || !member) return membersOnly();
   await env.DB.batch([
-    env.DB.prepare("delete from votes where post_id = ? and user_id = ?").bind(id, user.id),
+    env.DB.prepare("delete from votes where post_id = ? and user_id = ?").bind(id, actor.id),
     env.DB.prepare("update posts set votes = (select count(*) from votes where post_id = ?) where id = ?").bind(id, id),
   ]);
   return json({ ok: true });
@@ -291,19 +318,19 @@ async function unvotePost(env: Env, id: number, user: User | null, admin: boolea
 async function addComment(req: Request, env: Env, id: number, user: User | null, admin: boolean) {
   const hit = await withPostBoard(env, id);
   if (!hit) return json({ error: "not_found" }, 404);
-  const { see, member } = await access(env, hit.board, user, admin);
+  const { see, member, user: actor } = await access(env, hit.board, user, admin);
   if (!see) return teamOnly();
-  if (!user || !member) return membersOnly();
+  if (!actor || !member) return membersOnly();
   const body = (await req.json().catch(() => ({}))) as Record<string, unknown>;
   const text = requiredText(body.body, 1000);
   if (!text) return json({ error: "invalid_body" }, 400);
   const now = Date.now();
   const [row] = await env.DB.batch([
-    env.DB.prepare("insert into comments (post_id, user_id, body, created_at) values (?, ?, ?, ?) returning id").bind(id, user.id, text, now),
+    env.DB.prepare("insert into comments (post_id, user_id, body, created_at) values (?, ?, ?, ?) returning id").bind(id, actor.id, text, now),
     env.DB.prepare("update posts set comments = (select count(*) from comments where post_id = ?) where id = ?").bind(id, id),
   ]);
   const created = row.results[0] as { id: number } | undefined;
-  return json({ id: created?.id, body: text, author: user.name, createdAt: now }, 201);
+  return json({ id: created?.id, body: text, author: actor.name, official: actor.ext_id === `__team:${hit.board.id}`, createdAt: now }, 201);
 }
 
 async function updatePostStatus(req: Request, env: Env, admin: boolean, id: number) {
@@ -365,6 +392,7 @@ async function deleteComment(env: Env, admin: boolean, id: number) {
 const BOARD_POSTS = /^\/api\/boards\/([a-z0-9-]{2,40})\/posts$/;
 const BOARD_ROTATE = /^\/api\/boards\/([a-z0-9-]{2,40})\/rotate-secret$/;
 const BOARD_SSO = /^\/api\/boards\/([a-z0-9-]{2,40})\/sso$/;
+const BOARD_TEST = /^\/api\/boards\/([a-z0-9-]{2,40})\/test$/;
 const BOARD_SIMILAR = /^\/api\/boards\/([a-z0-9-]{2,40})\/similar$/;
 const BOARD_ONE = /^\/api\/boards\/([a-z0-9-]{2,40})$/;
 const POST_VOTE = /^\/api\/posts\/(\d+)\/vote$/;
@@ -387,6 +415,7 @@ export async function api(req: Request, env: Env, url: URL): Promise<Response> {
   if (path === "/api/boards" && method === "POST") return createBoard(req, env, admin);
   if ((m = path.match(BOARD_ROTATE)) && method === "POST") return rotateSecret(env, admin, m[1]);
   if ((m = path.match(BOARD_SSO)) && method === "GET") return boardSso(env, admin, m[1], url);
+  if ((m = path.match(BOARD_TEST)) && method === "GET") return testLink(env, admin, m[1], url);
   if ((m = path.match(BOARD_SIMILAR)) && method === "GET") return similarPosts(env, url, m[1], user, admin);
   if ((m = path.match(BOARD_POSTS)) && method === "GET") return listPosts(env, url, m[1], user, admin);
   if ((m = path.match(BOARD_POSTS)) && method === "POST") return createPost(req, env, m[1], user, admin);

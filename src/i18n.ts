@@ -12,7 +12,7 @@ export const LANGS: { code: Lang; label: string }[] = [
 
 export interface Messages {
   app: { wordmark: string };
-  nav: { boards: string; admin: string };
+  nav: { boards: string; admin: string; settings: string };
   lang: { label: string };
   common: { loading: string; retry: string };
   auth: { signOut: string; noAccessTitle: string; noAccess: string };
@@ -38,8 +38,11 @@ export interface Messages {
     comments: string;
     by: string;
     membersOnly: string;
+    membersOnlyProduct: string;
     similarLead: string;
     votes: string;
+    suggest: string;
+    close: string;
   };
   post: {
     back: string;
@@ -58,6 +61,7 @@ export interface Messages {
     deleteCancel: string;
     gone: string;
     membersOnly: string;
+    official: string;
   };
   admin: {
     title: string;
@@ -83,8 +87,29 @@ export interface Messages {
     statusesHelp: string;
     copyLink: string;
     openLink: string;
-    developerTitle: string;
-    developerLead: string;
+    boardsEmpty: string;
+    ideasCount: string;
+    cancel: string;
+    back: string;
+    tabLook: string;
+    tabConnect: string;
+    productTitle: string;
+    fieldProductName: string;
+    fieldProductUrl: string;
+    productHelp: string;
+    connectPublicStep: string;
+    connectPublicHelp: string;
+    connectSignedTitle: string;
+    connectStep1: string;
+    connectStep1Help: string;
+    connectStep2: string;
+    connectStep2Help: string;
+    copyInstructions: string;
+    instructionsCopied: string;
+    connectStep3: string;
+    connectStep3Help: string;
+    openAsTest: string;
+    devBrief: string;
     createSubmit: string;
     save: string;
     saved: string;
@@ -93,9 +118,6 @@ export interface Messages {
     ssoHide: string;
     ssoRotate: string;
     ssoRotateConfirm: string;
-    ssoAudience: string;
-    ssoSnippetTitle: string;
-    ssoCopy: string;
     ssoCopied: string;
     updatesTitle: string;
     updatesLead: string;
@@ -105,7 +127,6 @@ export interface Messages {
     updatesHelp: string;
     shareLabel: string;
     shareHelp: string;
-    versionTitle: string;
     versionLine: string;
     latestAvailable: string;
   };
@@ -136,12 +157,14 @@ export interface Messages {
     wrong_password: string;
     wrong_current_password: string;
     password_too_short: string;
+    invalid_product_name: string;
+    invalid_product_url: string;
   };
 }
 
 const en: Messages = {
   app: { wordmark: "Dozokit Ideas" },
-  nav: { boards: "Boards", admin: "Admin" },
+  nav: { boards: "Boards", admin: "Admin", settings: "Settings" },
   lang: { label: "Language" },
   common: { loading: "Loading…", retry: "Try again" },
   auth: {
@@ -191,8 +214,11 @@ const en: Messages = {
     comments: "{n} comments",
     by: "by {name} · {date}",
     membersOnly: "To vote or suggest an idea, open this board from the product you use.",
+    membersOnlyProduct: "To vote or suggest an idea, open Ideas from {product}.",
     similarLead: "Already suggested? Vote for it instead.",
     votes: "{n} votes",
+    suggest: "Suggest an idea",
+    close: "Close",
   },
   post: {
     back: "Back to board",
@@ -211,6 +237,7 @@ const en: Messages = {
     deleteCancel: "Keep it",
     gone: "This idea was merged into another one, or removed. Search the board for it.",
     membersOnly: "To vote or comment, open this board from the product you use.",
+    official: "Official answer",
   },
   admin: {
     title: "Admin",
@@ -236,8 +263,29 @@ const en: Messages = {
     statusesHelp: "New ideas start in the first status. Removing a status moves its ideas to the first one.",
     copyLink: "Copy link",
     openLink: "Open",
-    developerTitle: "For your developer",
-    developerLead: "People vote, suggest and comment once your product sends them here with a signed link. Your developer needs this board's secret and the example below.",
+    boardsEmpty: "No boards yet. Create your first one with New board.",
+    ideasCount: "{n} ideas",
+    cancel: "Cancel",
+    back: "All boards",
+    tabLook: "Look",
+    tabConnect: "Connect to your product",
+    productTitle: "Your product",
+    fieldProductName: "Product name",
+    fieldProductUrl: "Product link (optional)",
+    productHelp: "People who can read this board but not vote yet are told: “To vote or suggest an idea, open Ideas from” your product name, linked to this address. Leave both empty to keep the general sentence.",
+    connectPublicStep: "Put this link behind an “Ideas” button in your app",
+    connectPublicHelp: "Anyone who opens it can read the ideas, but not vote, suggest or comment.",
+    connectSignedTitle: "So your signed-in users can vote too",
+    connectStep1: "Add an “Ideas” button where your users are signed in",
+    connectStep1Help: "For example in your app’s menu. Whoever clicks it lands on this board, already signed in with their name.",
+    connectStep2: "Your server makes the link",
+    connectStep2Help: "When someone clicks the button, your server makes a link that signs them in to this board and sends them there. Copy the instructions and give them to your developer: they hold everything needed, this board’s secret included, so keep them private.",
+    copyInstructions: "Copy instructions for your developer",
+    instructionsCopied: "Copied. Paste them to your developer.",
+    connectStep3: "Check it",
+    connectStep3Help: "Opens the board as a made-up member, “Test person”, so you see it exactly as your users will. You stay signed in to the admin page.",
+    openAsTest: "Open as a test person",
+    devBrief: "Dozokit Ideas: send our signed-in users to the \"{name}\" ideas board\n\nWhat it is: an ideas board where our users suggest ideas, vote and comment. They can only do that when our product sends them there with a signed link, which signs them in to this board. Please add an \"Ideas\" button, shown to signed-in users, that does this.\n\nBoard: {origin}/b/{id}\n\nWhen someone clicks the button, our server makes a token and sends their browser there (a normal link or redirect, never inside an iframe):\n{origin}/sso?token=<the token>&return_to=/b/{id}\n\nThe token is a JWT signed with HS256 using this board's secret:\n{secret}\n\nIts fields:\n- iss: \"{id}\" (the board's id)\n- aud: \"{origin}\" (exactly this address)\n- sub: the user's id in our product (the same every time for the same person)\n- name: the user's full name\n- email: the user's email address\n- exp: now plus 5 minutes at most, in seconds\n- jti: a unique id for each token (a token only works once)\n\nMake the token on our server, when the button is clicked. Never send the secret to the browser or put it in front-end code: keep it with the server's other secrets.\n\nExample in Node:\n{snippet}\n",
     createSubmit: "Create board",
     save: "Save",
     saved: "Saved.",
@@ -246,9 +294,6 @@ const en: Messages = {
     ssoHide: "Hide",
     ssoRotate: "Rotate secret",
     ssoRotateConfirm: "Links minted with the old secret stop working. Continue?",
-    ssoAudience: "Audience",
-    ssoSnippetTitle: "Mint a link (Node)",
-    ssoCopy: "Copy",
     ssoCopied: "Copied",
     updatesTitle: "Updates",
     updatesLead:
@@ -260,8 +305,7 @@ const en: Messages = {
     shareLabel: "Check for new versions",
     shareHelp:
       "Once a day, this admin page asks Dozokit whether a new version is out. It sends only its version number and a random number made for this copy, nothing about your boards or the people on them. Turned off, nothing is sent and you won't hear about new versions.",
-    versionTitle: "Version",
-    versionLine: "Dozokit Ideas {version}.",
+    versionLine: "This copy runs Dozokit Ideas {version}.",
     latestAvailable: "Version {latest} is available.",
   },
   status: { open: "Open", planned: "Planned", in_progress: "In progress", done: "Done" },
@@ -291,12 +335,14 @@ const en: Messages = {
     wrong_password: "That password is not the one set for this admin page.",
     wrong_current_password: "Your current password is not that one.",
     password_too_short: "The new password needs 12 characters or more.",
+    invalid_product_name: "Keep the product name to 100 characters or fewer.",
+    invalid_product_url: "Enter a link that starts with https://, or leave it empty.",
   },
 };
 
 const fr: Messages = {
   app: { wordmark: "Dozokit Ideas" },
-  nav: { boards: "Tableaux", admin: "Admin" },
+  nav: { boards: "Tableaux", admin: "Admin", settings: "Réglages" },
   lang: { label: "Langue" },
   common: { loading: "Chargement…", retry: "Réessayer" },
   auth: {
@@ -346,8 +392,11 @@ const fr: Messages = {
     comments: "{n} commentaires",
     by: "par {name} · {date}",
     membersOnly: "Pour voter ou proposer une idée, ouvrez ce tableau depuis le produit que vous utilisez.",
+    membersOnlyProduct: "Pour voter ou proposer une idée, ouvrez Ideas depuis {product}.",
     similarLead: "Déjà proposée ? Votez plutôt pour elle.",
     votes: "{n} votes",
+    suggest: "Proposer une idée",
+    close: "Fermer",
   },
   post: {
     back: "Retour au tableau",
@@ -366,6 +415,7 @@ const fr: Messages = {
     deleteCancel: "La garder",
     gone: "Cette idée a été fusionnée avec une autre, ou supprimée. Recherchez-la dans le tableau.",
     membersOnly: "Pour voter ou commenter, ouvrez ce tableau depuis le produit que vous utilisez.",
+    official: "Réponse officielle",
   },
   admin: {
     title: "Admin",
@@ -391,8 +441,29 @@ const fr: Messages = {
     statusesHelp: "Les nouvelles idées commencent dans le premier statut. Retirer un statut déplace ses idées dans le premier.",
     copyLink: "Copier le lien",
     openLink: "Ouvrir",
-    developerTitle: "Pour votre développeur",
-    developerLead: "Les gens votent, proposent et commentent une fois que votre produit les envoie ici avec un lien signé. Votre développeur a besoin du secret de ce tableau et de l'exemple ci-dessous.",
+    boardsEmpty: "Pas encore de tableau. Créez le premier avec Nouveau tableau.",
+    ideasCount: "{n} idées",
+    cancel: "Annuler",
+    back: "Tous les tableaux",
+    tabLook: "Apparence",
+    tabConnect: "Relier à votre produit",
+    productTitle: "Votre produit",
+    fieldProductName: "Nom du produit",
+    fieldProductUrl: "Lien du produit (facultatif)",
+    productHelp: "Les personnes qui peuvent lire ce tableau mais pas encore voter lisent : « Pour voter ou proposer une idée, ouvrez Ideas depuis » le nom de votre produit, avec un lien vers cette adresse. Laissez les deux vides pour garder la phrase générale.",
+    connectPublicStep: "Mettez ce lien derrière un bouton « Idées » dans votre application",
+    connectPublicHelp: "Toute personne qui l’ouvre peut lire les idées, mais pas voter, proposer ni commenter.",
+    connectSignedTitle: "Pour que vos utilisateurs connectés puissent aussi voter",
+    connectStep1: "Ajoutez un bouton « Idées » là où vos utilisateurs sont connectés",
+    connectStep1Help: "Par exemple dans le menu de votre application. La personne qui clique arrive sur ce tableau, déjà connectée avec son nom.",
+    connectStep2: "Votre serveur crée le lien",
+    connectStep2Help: "Quand quelqu’un clique sur le bouton, votre serveur crée un lien qui le connecte à ce tableau et l’y envoie. Copiez les instructions et donnez-les à votre développeur : elles contiennent tout ce qu’il faut, y compris le secret de ce tableau, alors gardez-les pour vous.",
+    copyInstructions: "Copier les instructions pour votre développeur",
+    instructionsCopied: "Copié. Collez-les à votre développeur.",
+    connectStep3: "Vérifiez",
+    connectStep3Help: "Ouvre le tableau en tant que membre fictif, « Test person », pour le voir exactement comme vos utilisateurs. Vous restez connecté à la page d’admin.",
+    openAsTest: "Ouvrir en tant que personne test",
+    devBrief: "Dozokit Ideas : envoyer nos utilisateurs connectés sur le tableau d'idées « {name} »\n\nDe quoi il s'agit : un tableau d'idées où nos utilisateurs proposent des idées, votent et commentent. Ils ne peuvent le faire que si notre produit les y envoie avec un lien signé, qui les connecte à ce tableau. Merci d'ajouter un bouton « Idées », visible des utilisateurs connectés, qui fait cela.\n\nTableau : {origin}/b/{id}\n\nQuand quelqu'un clique sur le bouton, notre serveur crée un jeton et envoie son navigateur ici (un lien normal ou une redirection, jamais dans une iframe) :\n{origin}/sso?token=<le jeton>&return_to=/b/{id}\n\nLe jeton est un JWT signé en HS256 avec le secret de ce tableau :\n{secret}\n\nSes champs :\n- iss : \"{id}\" (l'identifiant du tableau)\n- aud : \"{origin}\" (exactement cette adresse)\n- sub : l'identifiant de l'utilisateur dans notre produit (toujours le même pour une même personne)\n- name : le nom complet de l'utilisateur\n- email : l'adresse e-mail de l'utilisateur\n- exp : maintenant plus 5 minutes au plus, en secondes\n- jti : un identifiant unique pour chaque jeton (un jeton ne fonctionne qu'une fois)\n\nCréez le jeton sur notre serveur, au moment du clic. N'envoyez jamais le secret au navigateur et ne le mettez pas dans le code front-end : gardez-le avec les autres secrets du serveur.\n\nExemple en Node :\n{snippet}\n",
     createSubmit: "Créer le tableau",
     save: "Enregistrer",
     saved: "Enregistré.",
@@ -401,9 +472,6 @@ const fr: Messages = {
     ssoHide: "Masquer",
     ssoRotate: "Changer le secret",
     ssoRotateConfirm: "Les liens créés avec l'ancien secret ne fonctionneront plus. Continuer ?",
-    ssoAudience: "Audience",
-    ssoSnippetTitle: "Créer un lien (Node)",
-    ssoCopy: "Copier",
     ssoCopied: "Copié",
     updatesTitle: "Mises à jour",
     updatesLead:
@@ -415,8 +483,7 @@ const fr: Messages = {
     shareLabel: "Vérifier les nouvelles versions",
     shareHelp:
       "Une fois par jour, cette page d'admin demande à Dozokit si une nouvelle version est sortie. Elle n'envoie que son numéro de version et un nombre au hasard créé pour cette copie, rien sur vos tableaux ni sur les personnes qui les utilisent. Désactivé, rien n'est envoyé et aucune nouvelle version ne vous est signalée.",
-    versionTitle: "Version",
-    versionLine: "Dozokit Ideas {version}.",
+    versionLine: "Cette copie utilise Dozokit Ideas {version}.",
     latestAvailable: "La version {latest} est disponible.",
   },
   status: { open: "Ouvert", planned: "Prévu", in_progress: "En cours", done: "Terminé" },
@@ -446,12 +513,14 @@ const fr: Messages = {
     wrong_password: "Ce mot de passe n'est pas celui de cette page d'admin.",
     wrong_current_password: "Votre mot de passe actuel n'est pas celui-là.",
     password_too_short: "Le nouveau mot de passe doit faire 12 caractères ou plus.",
+    invalid_product_name: "Le nom du produit doit faire 100 caractères au plus.",
+    invalid_product_url: "Entrez un lien qui commence par https://, ou laissez vide.",
   },
 };
 
 const es: Messages = {
   app: { wordmark: "Dozokit Ideas" },
-  nav: { boards: "Tableros", admin: "Admin" },
+  nav: { boards: "Tableros", admin: "Admin", settings: "Ajustes" },
   lang: { label: "Idioma" },
   common: { loading: "Cargando…", retry: "Reintentar" },
   auth: {
@@ -501,8 +570,11 @@ const es: Messages = {
     comments: "{n} comentarios",
     by: "por {name} · {date}",
     membersOnly: "Para votar o proponer una idea, abre este tablero desde el producto que usas.",
+    membersOnlyProduct: "Para votar o proponer una idea, abre Ideas desde {product}.",
     similarLead: "¿Ya la propusieron? Vota por ella.",
     votes: "{n} votos",
+    suggest: "Proponer una idea",
+    close: "Cerrar",
   },
   post: {
     back: "Volver al tablero",
@@ -521,6 +593,7 @@ const es: Messages = {
     deleteCancel: "Conservarla",
     gone: "Esta idea se fusionó con otra, o se eliminó. Búscala en el tablero.",
     membersOnly: "Para votar o comentar, abre este tablero desde el producto que usas.",
+    official: "Respuesta oficial",
   },
   admin: {
     title: "Admin",
@@ -546,8 +619,29 @@ const es: Messages = {
     statusesHelp: "Las ideas nuevas empiezan en el primer estado. Quitar un estado mueve sus ideas al primero.",
     copyLink: "Copiar el enlace",
     openLink: "Abrir",
-    developerTitle: "Para tu desarrollador",
-    developerLead: "La gente vota, propone y comenta cuando tu producto la envía aquí con un enlace firmado. Tu desarrollador necesita el secreto de este tablero y el ejemplo de abajo.",
+    boardsEmpty: "Todavía no hay tableros. Crea el primero con Nuevo tablero.",
+    ideasCount: "{n} ideas",
+    cancel: "Cancelar",
+    back: "Todos los tableros",
+    tabLook: "Aspecto",
+    tabConnect: "Conectar con tu producto",
+    productTitle: "Tu producto",
+    fieldProductName: "Nombre del producto",
+    fieldProductUrl: "Enlace del producto (opcional)",
+    productHelp: "Quienes pueden leer este tablero pero aún no votar leen: «Para votar o proponer una idea, abre Ideas desde» el nombre de tu producto, enlazado a esta dirección. Deja ambos vacíos para mantener la frase general.",
+    connectPublicStep: "Pon este enlace detrás de un botón «Ideas» en tu aplicación",
+    connectPublicHelp: "Cualquiera que lo abra puede leer las ideas, pero no votar, proponer ni comentar.",
+    connectSignedTitle: "Para que tus usuarios con sesión iniciada también puedan votar",
+    connectStep1: "Añade un botón «Ideas» donde tus usuarios tienen la sesión iniciada",
+    connectStep1Help: "Por ejemplo en el menú de tu aplicación. Quien haga clic llega a este tablero, ya con su nombre.",
+    connectStep2: "Tu servidor crea el enlace",
+    connectStep2Help: "Cuando alguien hace clic en el botón, tu servidor crea un enlace que le inicia sesión en este tablero y lo envía allí. Copia las instrucciones y dáselas a tu desarrollador: tienen todo lo necesario, incluido el secreto de este tablero, así que no las compartas con nadie más.",
+    copyInstructions: "Copiar las instrucciones para tu desarrollador",
+    instructionsCopied: "Copiado. Pégaselas a tu desarrollador.",
+    connectStep3: "Compruébalo",
+    connectStep3Help: "Abre el tablero como un miembro inventado, «Test person», para que lo veas exactamente como tus usuarios. Sigues con la sesión de admin iniciada.",
+    openAsTest: "Abrir como persona de prueba",
+    devBrief: "Dozokit Ideas: enviar a nuestros usuarios con sesión iniciada al tablero de ideas «{name}»\n\nQué es: un tablero de ideas donde nuestros usuarios proponen ideas, votan y comentan. Solo pueden hacerlo cuando nuestro producto los envía allí con un enlace firmado, que les inicia sesión en este tablero. Por favor, añade un botón «Ideas», visible para los usuarios con sesión iniciada, que haga esto.\n\nTablero: {origin}/b/{id}\n\nCuando alguien hace clic en el botón, nuestro servidor crea un token y envía su navegador aquí (un enlace normal o una redirección, nunca dentro de un iframe):\n{origin}/sso?token=<el token>&return_to=/b/{id}\n\nEl token es un JWT firmado con HS256 usando el secreto de este tablero:\n{secret}\n\nSus campos:\n- iss: \"{id}\" (el id del tablero)\n- aud: \"{origin}\" (exactamente esta dirección)\n- sub: el id del usuario en nuestro producto (siempre el mismo para la misma persona)\n- name: el nombre completo del usuario\n- email: el correo electrónico del usuario\n- exp: ahora más 5 minutos como máximo, en segundos\n- jti: un id único para cada token (un token solo funciona una vez)\n\nCrea el token en nuestro servidor, en el momento del clic. Nunca envíes el secreto al navegador ni lo pongas en el código front-end: guárdalo con los demás secretos del servidor.\n\nEjemplo en Node:\n{snippet}\n",
     createSubmit: "Crear tablero",
     save: "Guardar",
     saved: "Guardado.",
@@ -556,9 +650,6 @@ const es: Messages = {
     ssoHide: "Ocultar",
     ssoRotate: "Cambiar el secreto",
     ssoRotateConfirm: "Los enlaces creados con el secreto anterior dejarán de funcionar. ¿Continuar?",
-    ssoAudience: "Audiencia",
-    ssoSnippetTitle: "Crear un enlace (Node)",
-    ssoCopy: "Copiar",
     ssoCopied: "Copiado",
     updatesTitle: "Actualizaciones",
     updatesLead:
@@ -570,8 +661,7 @@ const es: Messages = {
     shareLabel: "Buscar versiones nuevas",
     shareHelp:
       "Una vez al día, esta página de admin pregunta a Dozokit si hay una versión nueva. Solo envía su número de versión y un número al azar creado para esta copia, nada sobre tus tableros ni sobre quienes los usan. Desactivado, no se envía nada y no sabrás de las versiones nuevas.",
-    versionTitle: "Versión",
-    versionLine: "Dozokit Ideas {version}.",
+    versionLine: "Esta copia usa Dozokit Ideas {version}.",
     latestAvailable: "La versión {latest} está disponible.",
   },
   status: { open: "Abierto", planned: "Planificado", in_progress: "En curso", done: "Hecho" },
@@ -601,12 +691,14 @@ const es: Messages = {
     wrong_password: "Esa contraseña no es la de esta página de admin.",
     wrong_current_password: "Tu contraseña actual no es esa.",
     password_too_short: "La contraseña nueva necesita 12 caracteres o más.",
+    invalid_product_name: "El nombre del producto debe tener 100 caracteres o menos.",
+    invalid_product_url: "Escribe un enlace que empiece por https://, o déjalo vacío.",
   },
 };
 
 const ptBR: Messages = {
   app: { wordmark: "Dozokit Ideas" },
-  nav: { boards: "Quadros", admin: "Admin" },
+  nav: { boards: "Quadros", admin: "Admin", settings: "Configurações" },
   lang: { label: "Idioma" },
   common: { loading: "Carregando…", retry: "Tentar de novo" },
   auth: {
@@ -656,8 +748,11 @@ const ptBR: Messages = {
     comments: "{n} comentários",
     by: "por {name} · {date}",
     membersOnly: "Para votar ou sugerir uma ideia, abra este quadro pelo produto que você usa.",
+    membersOnlyProduct: "Para votar ou sugerir uma ideia, abra o Ideas pelo {product}.",
     similarLead: "Já foi sugerida? Vote nela.",
     votes: "{n} votos",
+    suggest: "Sugerir uma ideia",
+    close: "Fechar",
   },
   post: {
     back: "Voltar ao quadro",
@@ -676,6 +771,7 @@ const ptBR: Messages = {
     deleteCancel: "Manter",
     gone: "Esta ideia foi mesclada com outra, ou removida. Procure por ela no quadro.",
     membersOnly: "Para votar ou comentar, abra este quadro pelo produto que você usa.",
+    official: "Resposta oficial",
   },
   admin: {
     title: "Admin",
@@ -701,8 +797,29 @@ const ptBR: Messages = {
     statusesHelp: "As ideias novas começam no primeiro status. Remover um status move as ideias dele para o primeiro.",
     copyLink: "Copiar o link",
     openLink: "Abrir",
-    developerTitle: "Para o seu desenvolvedor",
-    developerLead: "As pessoas votam, sugerem e comentam quando o seu produto as envia para cá com um link assinado. O seu desenvolvedor precisa do secret deste quadro e do exemplo abaixo.",
+    boardsEmpty: "Ainda não há quadros. Crie o primeiro com Novo quadro.",
+    ideasCount: "{n} ideias",
+    cancel: "Cancelar",
+    back: "Todos os quadros",
+    tabLook: "Aparência",
+    tabConnect: "Conectar ao seu produto",
+    productTitle: "Seu produto",
+    fieldProductName: "Nome do produto",
+    fieldProductUrl: "Link do produto (opcional)",
+    productHelp: "Quem pode ler este quadro mas ainda não pode votar lê: “Para votar ou sugerir uma ideia, abra o Ideas pelo” nome do seu produto, com link para este endereço. Deixe os dois vazios para manter a frase geral.",
+    connectPublicStep: "Coloque este link atrás de um botão “Ideias” no seu app",
+    connectPublicHelp: "Qualquer pessoa que o abrir pode ler as ideias, mas não votar, sugerir nem comentar.",
+    connectSignedTitle: "Para que os seus usuários conectados também possam votar",
+    connectStep1: "Adicione um botão “Ideias” onde os seus usuários estão conectados",
+    connectStep1Help: "Por exemplo no menu do seu app. Quem clicar chega a este quadro, já conectado com o próprio nome.",
+    connectStep2: "O seu servidor gera o link",
+    connectStep2Help: "Quando alguém clica no botão, o seu servidor gera um link que conecta a pessoa a este quadro e a envia para lá. Copie as instruções e passe para o seu desenvolvedor: elas têm tudo o que é preciso, inclusive o secret deste quadro, então não as compartilhe com mais ninguém.",
+    copyInstructions: "Copiar as instruções para o seu desenvolvedor",
+    instructionsCopied: "Copiado. Cole para o seu desenvolvedor.",
+    connectStep3: "Confira",
+    connectStep3Help: "Abre o quadro como um membro inventado, “Test person”, para você ver exatamente o que os seus usuários verão. Você continua conectado à página de admin.",
+    openAsTest: "Abrir como pessoa de teste",
+    devBrief: "Dozokit Ideas: enviar os nossos usuários conectados para o quadro de ideias \"{name}\"\n\nO que é: um quadro de ideias onde os nossos usuários sugerem ideias, votam e comentam. Eles só podem fazer isso quando o nosso produto os envia para lá com um link assinado, que os conecta a este quadro. Por favor, adicione um botão \"Ideias\", visível para usuários conectados, que faça isso.\n\nQuadro: {origin}/b/{id}\n\nQuando alguém clica no botão, o nosso servidor gera um token e envia o navegador para cá (um link normal ou um redirecionamento, nunca dentro de um iframe):\n{origin}/sso?token=<o token>&return_to=/b/{id}\n\nO token é um JWT assinado com HS256 usando o secret deste quadro:\n{secret}\n\nOs campos dele:\n- iss: \"{id}\" (o id do quadro)\n- aud: \"{origin}\" (exatamente este endereço)\n- sub: o id do usuário no nosso produto (sempre o mesmo para a mesma pessoa)\n- name: o nome completo do usuário\n- email: o e-mail do usuário\n- exp: agora mais 5 minutos no máximo, em segundos\n- jti: um id único para cada token (um token só funciona uma vez)\n\nGere o token no nosso servidor, no momento do clique. Nunca envie o secret para o navegador nem o coloque no código front-end: guarde-o junto com os outros secrets do servidor.\n\nExemplo em Node:\n{snippet}\n",
     createSubmit: "Criar quadro",
     save: "Salvar",
     saved: "Salvo.",
@@ -711,9 +828,6 @@ const ptBR: Messages = {
     ssoHide: "Ocultar",
     ssoRotate: "Trocar o secret",
     ssoRotateConfirm: "Os links criados com o secret antigo deixam de funcionar. Continuar?",
-    ssoAudience: "Audiência",
-    ssoSnippetTitle: "Gerar um link (Node)",
-    ssoCopy: "Copiar",
     ssoCopied: "Copiado",
     updatesTitle: "Atualizações",
     updatesLead:
@@ -725,8 +839,7 @@ const ptBR: Messages = {
     shareLabel: "Procurar novas versões",
     shareHelp:
       "Uma vez por dia, esta página de admin pergunta à Dozokit se saiu uma nova versão. Ela envia só o número da versão e um número aleatório criado para esta cópia, nada sobre os seus quadros nem sobre quem os usa. Desligado, nada é enviado e você não fica sabendo das novas versões.",
-    versionTitle: "Versão",
-    versionLine: "Dozokit Ideas {version}.",
+    versionLine: "Esta cópia usa o Dozokit Ideas {version}.",
     latestAvailable: "A versão {latest} está disponível.",
   },
   status: { open: "Aberto", planned: "Planejado", in_progress: "Em andamento", done: "Concluído" },
@@ -756,6 +869,8 @@ const ptBR: Messages = {
     wrong_password: "Essa senha não é a desta página de admin.",
     wrong_current_password: "A sua senha atual não é essa.",
     password_too_short: "A nova senha precisa de 12 caracteres ou mais.",
+    invalid_product_name: "O nome do produto deve ter 100 caracteres ou menos.",
+    invalid_product_url: "Digite um link que comece com https://, ou deixe vazio.",
   },
 };
 

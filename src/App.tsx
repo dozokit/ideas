@@ -6,7 +6,7 @@ import { Login } from "./pages/Login";
 import { Boards } from "./pages/Boards";
 import { Board } from "./pages/Board";
 import { Post } from "./pages/Post";
-import { Admin } from "./pages/Admin";
+import { Admin, BoardSettings, Settings } from "./pages/Admin";
 
 export type Navigate = (to: string, replace?: boolean) => void;
 
@@ -28,6 +28,7 @@ function useRoute(): [string, Navigate] {
 
 const BOARD_PATH = /^\/b\/([a-z0-9-]{2,40})$/;
 const POST_PATH = /^\/b\/([a-z0-9-]{2,40})\/p\/(\d+)$/;
+const ADMIN_BOARD_PATH = /^\/admin\/b\/([a-z0-9-]{2,40})$/;
 
 function Setup({ message }: { message: string }) {
   const { t } = useT();
@@ -78,7 +79,7 @@ function Shell() {
     return <main className="container main" aria-busy="true" />;
   }
   if (me.config.setupNeeded) return <Setup message={me.config.setupNeeded} />;
-  if (path === "/admin" && !me.admin) return <Login onDone={load} />;
+  if ((path === "/admin" || path.startsWith("/admin/")) && !me.admin) return <Login onDone={load} />;
 
   const signOut = async () => {
     await api("/api/logout", { method: "POST" });
@@ -92,8 +93,11 @@ function Shell() {
 
   const postMatch = path.match(POST_PATH);
   const boardMatch = path.match(BOARD_PATH);
+  const adminBoardMatch = path.match(ADMIN_BOARD_PATH);
   let page: ReactNode;
-  if (path === "/admin") page = <Admin />;
+  if (path === "/admin") page = <Admin navigate={navigate} />;
+  else if (adminBoardMatch) page = <BoardSettings key={adminBoardMatch[1]} id={adminBoardMatch[1]} navigate={navigate} />;
+  else if (path === "/admin/settings") page = <Settings />;
   else if (postMatch) page = <Post boardId={postMatch[1]} postId={Number(postMatch[2])} me={me} navigate={navigate} />;
   else if (boardMatch) page = <Board id={boardMatch[1]} navigate={navigate} />;
   else page = <Boards navigate={navigate} />;
@@ -111,8 +115,13 @@ function Shell() {
               {t.nav.boards}
             </a>
             {me.admin && (
-              <a href="/admin" className="nav-link" aria-current={path === "/admin" ? "page" : undefined} onClick={go("/admin")}>
+              <a href="/admin" className="nav-link" aria-current={path === "/admin" || adminBoardMatch ? "page" : undefined} onClick={go("/admin")}>
                 {t.nav.admin}
+              </a>
+            )}
+            {me.admin && (
+              <a href="/admin/settings" className="nav-link" aria-current={path === "/admin/settings" ? "page" : undefined} onClick={go("/admin/settings")}>
+                {t.nav.settings}
               </a>
             )}
           </nav>

@@ -244,9 +244,10 @@ export function Post({ boardId, postId, me, navigate }: { boardId: string; postI
         {comments.length > 0 && (
           <ul className="comment-list">
             {comments.map((c) => (
-              <li key={c.id} className="comment">
+              <li key={c.id} className={c.official ? "comment comment--official" : "comment"}>
                 <div className="comment-meta">
                   <span className="comment-author">{c.author}</span>
+                  {c.official && <span className="badge badge--team">{t.post.official}</span>}
                   <span>{formatDate(c.createdAt, lang)}</span>
                   {me.admin && (
                     <button type="button" className="link-btn" data-testid="delete-comment" onClick={() => deleteComment(c.id)}>
