@@ -2,6 +2,10 @@
 
 How to update your copy: [dozokit.com/ideas/guide#updating](https://dozokit.com/ideas/guide#updating).
 
+## 1.1.1 – 2026-10-29
+
+- Fixes the weekly backup schedule, which Cloudflare refused on deploy.
+
 ## 1.1.0 – 2026-10-29
 
 - You sign in to the admin page with one password, set when you deploy and changeable on the admin page. Google sign-in, Turnstile and the dev login are gone: set `PASSWORD` in your Worker's settings before updating (`ADMIN_EMAIL`, `SESSION_SECRET`, `GOOGLE_*` and `TURNSTILE_*` can be deleted). Everyone is signed out once.
