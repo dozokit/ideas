@@ -22,16 +22,6 @@ const page = (status: number, title: string, text: string) =>
     { status, headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store", ...FRAME_HEADERS } },
   );
 
-// The SPA: / (boards list), /b/:id (a board), /b/:id/p/:postId (a post), and for the owner only
-// /admin (boards), /admin/b/:id (a board's settings) and /admin/settings.
-// The Worker always serves the same index.html; the app's own tiny router takes it from there.
-const isSpaPath = (path: string) => path === "/" || path.startsWith("/b/") || path === "/admin" || path.startsWith("/admin/");
-
-async function spaShell(env: Env, url: URL) {
-  const index = await env.ASSETS.fetch(new URL("/", url));
-  return new Response(index.body, { headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store", ...FRAME_HEADERS } });
-}
-
 export default {
   async fetch(req: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     const url = new URL(req.url);
@@ -59,12 +49,6 @@ export default {
     if (path === "/sso") return sso(req, env, url);
 
     if (path === "/robots.txt") return new Response("User-agent: *\nDisallow: /\n", { headers: { "content-type": "text/plain" } });
-
-    // Vite's own files in development, and the built assets (and icon.svg) in production: none
-    // of the SPA's own paths contain a dot or an "@".
-    if (/[.@]/.test(path.slice(1))) return env.ASSETS.fetch(req);
-
-    if (isSpaPath(path)) return spaShell(env, url);
 
     return page(404, "Not found", "Check the address.");
   },

@@ -2,6 +2,10 @@
 
 How to update your copy: [dozokit.com/ideas/guide#updating](https://dozokit.com/ideas/guide#updating).
 
+## 1.2.2 – 2026-10-29
+
+- The pages themselves are now served straight by Cloudflare too, so opening a board only counts its 3 data calls toward the free plan's 100,000 requests a day (it was 8 before 1.2.1). The app's files are kept in the browser for a year, since each build gives them new names.
+
 ## 1.2.1 – 2026-10-29
 
 - The app's files (scripts, styles, fonts, icon) are served straight by Cloudflare instead of through the Worker, so a board view uses about half as many of the free plan's 100,000 requests a day.
