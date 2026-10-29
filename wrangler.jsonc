@@ -7,12 +7,14 @@
   "compatibility_flags": ["global_fetch_strictly_public"],
   // Only data and sign-in go to the Worker. Pages and the built files are served straight by
   // Cloudflare (headers in public/_headers), so they don't count toward the free plan's 100,000
-  // requests a day; any other address gets the app, whose router shows the page. /.well-known/dozokit-ideas
+  // requests a day; any other address gets the app, whose router shows the page. /mcp is for developers'
+  // coding assistants. /.well-known/dozokit-ideas
   // answers the check made when the owner connects their own address.
-  "assets": { "binding": "ASSETS", "not_found_handling": "single-page-application", "run_worker_first": ["/api/*", "/sso", "/robots.txt", "/.well-known/dozokit-ideas"] },
+  "assets": { "binding": "ASSETS", "not_found_handling": "single-page-application", "run_worker_first": ["/api/*", "/sso", "/mcp", "/robots.txt", "/.well-known/dozokit-ideas"] },
   // No database_id: the Deploy button creates the database, or `wrangler d1 create` adds it here.
   "d1_databases": [{ "binding": "DB", "database_name": "dozokit-ideas", "migrations_dir": "migrations" }],
-  // A copy of every board on Sundays at 03:00 UTC, the last 4 kept. Keep this bucket private: backups hold signed-link secrets.
+  // A copy of every board on Sundays at 03:00 UTC, the last 4 kept, and bug screenshots (served only through the
+  // Worker, to who can see their board). Keep this bucket private: backups hold signed-link secrets.
   "r2_buckets": [{ "binding": "BACKUPS", "bucket_name": "dozokit-ideas-backups" }],
   "triggers": { "crons": ["0 3 * * SUN"] },
   // Admin sign-in and signed-link attempts per address. namespace_id only has to be unique in your Cloudflare account: change it if it clashes.

@@ -2,10 +2,12 @@ import { api, CHECK, me } from "./api";
 import { login, logout, setupNeeded } from "./admin";
 import { sso } from "./sso";
 import { backup } from "./backup";
+import { mcp } from "./mcp";
 
 export interface Env {
   DB: D1Database;
   ASSETS: Fetcher;
+  // Weekly backups under backups/, bug screenshots under screenshots/.
   BACKUPS: R2Bucket;
   PASSWORD?: string;
   LOGIN_LIMIT?: RateLimit;
@@ -47,6 +49,16 @@ export default {
     }
 
     if (path === "/sso") return sso(req, env, url);
+
+    // Developers' coding assistants, with a board's token instead of a cookie.
+    if (path === "/mcp") {
+      try {
+        return await mcp(req, env, url);
+      } catch (err) {
+        console.error(err);
+        return Response.json({ jsonrpc: "2.0", id: null, error: { code: -32603, message: "server_error" } }, { status: 500 });
+      }
+    }
 
     if (path === CHECK) return new Response("Dozokit Ideas", { headers: { "x-dozokit-ideas": url.searchParams.get("n") ?? "", "cache-control": "no-store" } });
 

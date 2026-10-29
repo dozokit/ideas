@@ -34,7 +34,6 @@ export interface Messages {
     sortNew: string;
     empty: string;
     vote: string;
-    voted: string;
     comments: string;
     by: string;
     membersOnly: string;
@@ -43,6 +42,22 @@ export interface Messages {
     votes: string;
     suggest: string;
     close: string;
+    lead: string;
+    reportBug: string;
+    bugLead: string;
+    bugTitle: string;
+    bugBody: string;
+    bugExpected: string;
+    bugPlace: string;
+    bugScreenshot: string;
+    bugSubmit: string;
+    bugBadge: string;
+    meToo: string;
+    typeAll: string;
+    typeIdeas: string;
+    typeBugs: string;
+    emptyIdeas: string;
+    emptyBugs: string;
   };
   post: {
     back: string;
@@ -62,6 +77,9 @@ export interface Messages {
     gone: string;
     membersOnly: string;
     official: string;
+    expected: string;
+    place: string;
+    screenshotAlt: string;
   };
   admin: {
     title: string;
@@ -153,8 +171,22 @@ export interface Messages {
     addressConnected: string;
     addressRemoved: string;
     addressHelp: string;
+    statusesIdeas: string;
+    statusesBugs: string;
+    devTitle: string;
+    devLead: string;
+    devTokenName: string;
+    devTokenNamePlaceholder: string;
+    devTokenCreate: string;
+    devTokenOnce: string;
+    devAddress: string;
+    devHeader: string;
+    devCopy: string;
+    devTokenUsed: string;
+    devTokenNeverUsed: string;
+    devTokenRevoke: string;
   };
-  status: Record<"open" | "planned" | "in_progress" | "done", string>;
+  status: Record<"open" | "planned" | "in_progress" | "done" | "new" | "confirmed" | "fixing" | "fixed", string>;
   err: {
     admin_only: string;
     not_found: string;
@@ -186,6 +218,8 @@ export interface Messages {
     invalid_domain: string;
     domain_no_answer: string;
     domain_elsewhere: string;
+    invalid_place: string;
+    invalid_screenshot: string;
   };
 }
 
@@ -235,17 +269,32 @@ const en: Messages = {
     filterAll: "All",
     sortTop: "Top",
     sortNew: "New",
-    empty: "No ideas yet. Be the first to share one.",
+    empty: "Nothing yet. Suggest an idea or report a bug.",
     vote: "Vote",
-    voted: "Voted",
     comments: "{n} comments",
     by: "by {name} · {date}",
-    membersOnly: "To vote or suggest an idea, open this board from the product you use.",
-    membersOnlyProduct: "To vote or suggest an idea, open Ideas from {product}.",
+    membersOnly: "To vote, suggest an idea or report a bug, open this board from the product you use.",
+    membersOnlyProduct: "To vote, suggest an idea or report a bug, open Ideas from {product}.",
     similarLead: "Already suggested? Vote for it instead.",
     votes: "{n} votes",
     suggest: "Suggest an idea",
     close: "Close",
+    lead: "Suggest what you'd like, or report what gets in your way. Vote for the ones that matter to you: the most voted come first.",
+    reportBug: "Report a bug",
+    bugLead: "Tell us what went wrong. Others who hit it too vote for it (▲), so the team fixes what bothers people most.",
+    bugTitle: "What went wrong?",
+    bugBody: "What happened, step by step (optional)",
+    bugExpected: "What did you expect? (optional)",
+    bugPlace: "Where? A page or a link (optional)",
+    bugScreenshot: "Screenshot (optional): PNG, JPEG, WebP or GIF, up to 5 MB",
+    bugSubmit: "Report bug",
+    bugBadge: "Bug",
+    meToo: "Me too",
+    typeAll: "All",
+    typeIdeas: "Ideas",
+    typeBugs: "Bugs",
+    emptyIdeas: "No ideas yet. Be the first to share one.",
+    emptyBugs: "No bugs reported. Something not working? Report it.",
   },
   post: {
     back: "Back to board",
@@ -256,15 +305,18 @@ const en: Messages = {
     deleteComment: "Delete",
     adminStatus: "Status",
     adminMerge: "Merge into…",
-    mergePlaceholder: "Choose an idea",
+    mergePlaceholder: "Choose an idea or a bug",
     mergeSubmit: "Merge",
-    delete: "Delete this idea",
+    delete: "Delete this post",
     deleteConfirm: "Its votes and comments move or disappear, and this can't be undone.",
-    deleteConfirmSubmit: "Delete idea",
+    deleteConfirmSubmit: "Delete",
     deleteCancel: "Keep it",
-    gone: "This idea was merged into another one, or removed. Search the board for it.",
+    gone: "This post was merged into another one, or removed. Search the board for it.",
     membersOnly: "To vote or comment, open this board from the product you use.",
     official: "Official answer",
+    expected: "Expected",
+    place: "Where",
+    screenshotAlt: "Screenshot of the bug",
   },
   admin: {
     title: "Admin",
@@ -289,11 +341,11 @@ const en: Messages = {
     statusUp: "Move up",
     statusDown: "Move down",
     statusRemove: "Remove",
-    statusesHelp: "New ideas start in the first status. Removing a status moves its ideas to the first one.",
+    statusesHelp: "New ideas and bugs start in the first status of their list. Removing a status moves its posts to the first one.",
     copyLink: "Copy link",
     openLink: "Open",
     boardsEmpty: "No boards yet. Create your first one with New board.",
-    ideasCount: "{n} ideas",
+    ideasCount: "{n} ideas and bugs",
     cancel: "Cancel",
     back: "All boards",
     tabLook: "Look",
@@ -301,7 +353,7 @@ const en: Messages = {
     productTitle: "Your product",
     fieldProductName: "Product name",
     fieldProductUrl: "Product link (optional)",
-    productHelp: "People who can read this board but not vote yet are told: “To vote or suggest an idea, open Ideas from” your product name, linked to this address. Leave both empty to keep the general sentence.",
+    productHelp: "People who can read this board but not vote yet are told: “To vote, suggest an idea or report a bug, open Ideas from” your product name, linked to this address. Leave both empty to keep the general sentence.",
     connectPublicStep: "Put this link behind an “Ideas” button in your app",
     connectPublicHelp: "Anyone who opens it can read the ideas, but not vote, suggest or comment.",
     connectSignedTitle: "So your signed-in users can vote too",
@@ -314,7 +366,7 @@ const en: Messages = {
     connectStep3: "Check it",
     connectStep3Help: "Opens the board as a made-up member, “Test person”, so you see it exactly as your users will. You stay signed in to the admin page.",
     openAsTest: "Open as a test person",
-    devBrief: "Dozokit Ideas: send our signed-in users to the \"{name}\" ideas board\n\nWhat it is: an ideas board where our users suggest ideas, vote and comment. They can only do that when our product sends them there with a signed link, which signs them in to this board. Please add an \"Ideas\" button, shown to signed-in users, that does this.\n\nBoard: {origin}/b/{id}\n\nWhen someone clicks the button, our server makes a token and sends their browser there (a normal link or redirect, never inside an iframe):\n{origin}/sso?token=<the token>&return_to=/b/{id}\n\nThe token is a JWT signed with HS256 using this board's secret:\n{secret}\n\nIts fields:\n- iss: \"{id}\" (the board's id)\n- aud: \"{origin}\" (exactly this address)\n- sub: the user's id in our product (the same every time for the same person)\n- name: the user's full name\n- email: the user's email address\n- exp: now plus 5 minutes at most, in seconds\n- jti: a unique id for each token (a token only works once)\n\nMake the token on our server, when the button is clicked. Never send the secret to the browser or put it in front-end code: keep it with the server's other secrets.\n\nExample in Node:\n{snippet}\n",
+    devBrief: "Dozokit Ideas: send our signed-in users to the \"{name}\" board for ideas and bug reports\n\nWhat it is: a board where our users suggest ideas, report bugs, vote and comment. They can only do that when our product sends them there with a signed link, which signs them in to this board. Please add an \"Ideas\" button, shown to signed-in users, that does this.\n\nBoard: {origin}/b/{id}\n\nWhen someone clicks the button, our server makes a token and sends their browser there (a normal link or redirect, never inside an iframe):\n{origin}/sso?token=<the token>&return_to=/b/{id}\n\nThe token is a JWT signed with HS256 using this board's secret:\n{secret}\n\nIts fields:\n- iss: \"{id}\" (the board's id)\n- aud: \"{origin}\" (exactly this address)\n- sub: the user's id in our product (the same every time for the same person)\n- name: the user's full name\n- email: the user's email address\n- exp: now plus 5 minutes at most, in seconds\n- jti: a unique id for each token (a token only works once)\n\nMake the token on our server, when the button is clicked. Never send the secret to the browser or put it in front-end code: keep it with the server's other secrets.\n\nExample in Node:\n{snippet}\n",
     createSubmit: "Create board",
     save: "Save",
     saved: "Saved.",
@@ -358,8 +410,22 @@ const en: Messages = {
     addressConnected: "Your boards now open at {address}.",
     addressRemoved: "Your boards are back on this copy's own address.",
     addressHelp: "The old address keeps working, but someone signed in on one address isn't signed in on the other. Your product's “Ideas” button must now use the new address: the developer instructions in each board's Connect to your product tab already show it.",
+    statusesIdeas: "Ideas",
+    statusesBugs: "Bugs",
+    devTitle: "For your developers",
+    devLead: "Lets your developers' AI assistant (Claude Code, Cursor, ChatGPT, or any tool that speaks MCP) read this board's ideas and bug reports, with their votes, statuses and comments, to pick what to work on. Read only: it can't change anything. Make one token per person, and revoke it when they leave.",
+    devTokenName: "Who it's for",
+    devTokenNamePlaceholder: "e.g. Sam, backend",
+    devTokenCreate: "New token",
+    devTokenOnce: "Copy this now: the token won't show again. Any MCP client connects with this address and header; in Claude Code, the last line is the one command to run in a terminal. Then ask things like “what are the most voted bugs?”.",
+    devAddress: "Address",
+    devHeader: "Header",
+    devCopy: "Copy",
+    devTokenUsed: "last used {date}",
+    devTokenNeverUsed: "never used",
+    devTokenRevoke: "Revoke",
   },
-  status: { open: "Open", planned: "Planned", in_progress: "In progress", done: "Done" },
+  status: { open: "Open", planned: "Planned", in_progress: "In progress", done: "Done", new: "New", confirmed: "Confirmed", fixing: "Fixing", fixed: "Fixed" },
   err: {
     admin_only: "This is for the admin only.",
     not_found: "Not found.",
@@ -374,11 +440,11 @@ const en: Messages = {
     team_only: "Open this board from the product you use.",
     members_only: "To vote, suggest or comment, open this board from the product you use.",
     setup_needed: "This board isn't set up yet.",
-    already_voted: "You already voted for this idea.",
+    already_voted: "You already voted for this.",
     invalid_title: "Enter a title, up to 120 characters.",
     invalid_body: "Keep it under the limit, or leave it empty.",
-    invalid_target: "Choose another idea to merge into.",
-    different_board: "Merge only ideas from the same board.",
+    invalid_target: "Choose another post to merge into.",
+    different_board: "Merge only posts from the same board.",
     cross_origin: "That request was blocked. Reload and try again.",
     server_error: "Something went wrong. Try again.",
     too_many: "Too many attempts. Try again in a minute.",
@@ -391,6 +457,8 @@ const en: Messages = {
     invalid_domain: "Type only the address, like ideas.your-product.com.",
     domain_no_answer: "No answer from {domain} yet. In Cloudflare, open Workers & Pages → dozokit-ideas → Domains and add it there; it can take a few minutes after that.",
     domain_elsewhere: "{domain} doesn't lead to your Dozokit Ideas yet. In Cloudflare, open Workers & Pages → dozokit-ideas → Domains and add it there.",
+    invalid_place: "Keep “where” to 500 characters or fewer.",
+    invalid_screenshot: "Choose a PNG, JPEG, WebP or GIF image of 5 MB or less.",
   },
 };
 
@@ -440,17 +508,32 @@ const fr: Messages = {
     filterAll: "Toutes",
     sortTop: "Les mieux votées",
     sortNew: "Récentes",
-    empty: "Pas encore d'idée. Soyez la première personne à en partager une.",
+    empty: "Rien pour l'instant. Proposez une idée ou signalez un bug.",
     vote: "Voter",
-    voted: "Voté",
     comments: "{n} commentaires",
     by: "par {name} · {date}",
-    membersOnly: "Pour voter ou proposer une idée, ouvrez ce tableau depuis le produit que vous utilisez.",
-    membersOnlyProduct: "Pour voter ou proposer une idée, ouvrez Ideas depuis {product}.",
+    membersOnly: "Pour voter, proposer une idée ou signaler un bug, ouvrez ce tableau depuis le produit que vous utilisez.",
+    membersOnlyProduct: "Pour voter, proposer une idée ou signaler un bug, ouvrez Ideas depuis {product}.",
     similarLead: "Déjà proposée ? Votez plutôt pour elle.",
     votes: "{n} votes",
     suggest: "Proposer une idée",
     close: "Fermer",
+    lead: "Proposez ce que vous aimeriez, ou signalez ce qui vous gêne. Votez pour ce qui compte pour vous : le plus voté passe en premier.",
+    reportBug: "Signaler un bug",
+    bugLead: "Dites-nous ce qui ne marche pas. Ceux qui le rencontrent aussi votent pour lui (▲), pour que l'équipe corrige d'abord ce qui gêne le plus.",
+    bugTitle: "Qu'est-ce qui ne marche pas ?",
+    bugBody: "Ce qui s'est passé, étape par étape (facultatif)",
+    bugExpected: "Qu'attendiez-vous ? (facultatif)",
+    bugPlace: "Où ? Une page ou un lien (facultatif)",
+    bugScreenshot: "Capture d'écran (facultatif) : PNG, JPEG, WebP ou GIF, 5 Mo maximum",
+    bugSubmit: "Signaler le bug",
+    bugBadge: "Bug",
+    meToo: "Moi aussi",
+    typeAll: "Tout",
+    typeIdeas: "Idées",
+    typeBugs: "Bugs",
+    emptyIdeas: "Pas encore d'idée. Soyez la première personne à en partager une.",
+    emptyBugs: "Aucun bug signalé. Quelque chose ne marche pas ? Signalez-le.",
   },
   post: {
     back: "Retour au tableau",
@@ -461,15 +544,18 @@ const fr: Messages = {
     deleteComment: "Supprimer",
     adminStatus: "Statut",
     adminMerge: "Fusionner avec…",
-    mergePlaceholder: "Choisissez une idée",
+    mergePlaceholder: "Choisissez une idée ou un bug",
     mergeSubmit: "Fusionner",
-    delete: "Supprimer cette idée",
+    delete: "Supprimer cette publication",
     deleteConfirm: "Ses votes et commentaires se déplacent ou disparaissent, et c'est irréversible.",
-    deleteConfirmSubmit: "Supprimer l'idée",
+    deleteConfirmSubmit: "Supprimer",
     deleteCancel: "La garder",
-    gone: "Cette idée a été fusionnée avec une autre, ou supprimée. Recherchez-la dans le tableau.",
+    gone: "Cette publication a été fusionnée avec une autre, ou supprimée. Recherchez-la dans le tableau.",
     membersOnly: "Pour voter ou commenter, ouvrez ce tableau depuis le produit que vous utilisez.",
     official: "Réponse officielle",
+    expected: "Attendu",
+    place: "Où",
+    screenshotAlt: "Capture d'écran du bug",
   },
   admin: {
     title: "Admin",
@@ -494,11 +580,11 @@ const fr: Messages = {
     statusUp: "Monter",
     statusDown: "Descendre",
     statusRemove: "Retirer",
-    statusesHelp: "Les nouvelles idées commencent dans le premier statut. Retirer un statut déplace ses idées dans le premier.",
+    statusesHelp: "Les nouvelles idées et les nouveaux bugs commencent dans le premier statut de leur liste. Retirer un statut déplace ses publications dans le premier.",
     copyLink: "Copier le lien",
     openLink: "Ouvrir",
     boardsEmpty: "Pas encore de tableau. Créez le premier avec Nouveau tableau.",
-    ideasCount: "{n} idées",
+    ideasCount: "{n} idées et bugs",
     cancel: "Annuler",
     back: "Tous les tableaux",
     tabLook: "Apparence",
@@ -506,7 +592,7 @@ const fr: Messages = {
     productTitle: "Votre produit",
     fieldProductName: "Nom du produit",
     fieldProductUrl: "Lien du produit (facultatif)",
-    productHelp: "Les personnes qui peuvent lire ce tableau mais pas encore voter lisent : « Pour voter ou proposer une idée, ouvrez Ideas depuis » le nom de votre produit, avec un lien vers cette adresse. Laissez les deux vides pour garder la phrase générale.",
+    productHelp: "Les personnes qui peuvent lire ce tableau mais pas encore voter lisent : « Pour voter, proposer une idée ou signaler un bug, ouvrez Ideas depuis » le nom de votre produit, avec un lien vers cette adresse. Laissez les deux vides pour garder la phrase générale.",
     connectPublicStep: "Mettez ce lien derrière un bouton « Idées » dans votre application",
     connectPublicHelp: "Toute personne qui l’ouvre peut lire les idées, mais pas voter, proposer ni commenter.",
     connectSignedTitle: "Pour que vos utilisateurs connectés puissent aussi voter",
@@ -519,7 +605,7 @@ const fr: Messages = {
     connectStep3: "Vérifiez",
     connectStep3Help: "Ouvre le tableau en tant que membre fictif, « Test person », pour le voir exactement comme vos utilisateurs. Vous restez connecté à la page d’admin.",
     openAsTest: "Ouvrir en tant que personne test",
-    devBrief: "Dozokit Ideas : envoyer nos utilisateurs connectés sur le tableau d'idées « {name} »\n\nDe quoi il s'agit : un tableau d'idées où nos utilisateurs proposent des idées, votent et commentent. Ils ne peuvent le faire que si notre produit les y envoie avec un lien signé, qui les connecte à ce tableau. Merci d'ajouter un bouton « Idées », visible des utilisateurs connectés, qui fait cela.\n\nTableau : {origin}/b/{id}\n\nQuand quelqu'un clique sur le bouton, notre serveur crée un jeton et envoie son navigateur ici (un lien normal ou une redirection, jamais dans une iframe) :\n{origin}/sso?token=<le jeton>&return_to=/b/{id}\n\nLe jeton est un JWT signé en HS256 avec le secret de ce tableau :\n{secret}\n\nSes champs :\n- iss : \"{id}\" (l'identifiant du tableau)\n- aud : \"{origin}\" (exactement cette adresse)\n- sub : l'identifiant de l'utilisateur dans notre produit (toujours le même pour une même personne)\n- name : le nom complet de l'utilisateur\n- email : l'adresse e-mail de l'utilisateur\n- exp : maintenant plus 5 minutes au plus, en secondes\n- jti : un identifiant unique pour chaque jeton (un jeton ne fonctionne qu'une fois)\n\nCréez le jeton sur notre serveur, au moment du clic. N'envoyez jamais le secret au navigateur et ne le mettez pas dans le code front-end : gardez-le avec les autres secrets du serveur.\n\nExemple en Node :\n{snippet}\n",
+    devBrief: "Dozokit Ideas : envoyer nos utilisateurs connectés sur le tableau « {name} » (idées et signalements de bugs)\n\nDe quoi il s'agit : un tableau où nos utilisateurs proposent des idées, signalent des bugs, votent et commentent. Ils ne peuvent le faire que si notre produit les y envoie avec un lien signé, qui les connecte à ce tableau. Merci d'ajouter un bouton « Idées », visible des utilisateurs connectés, qui fait cela.\n\nTableau : {origin}/b/{id}\n\nQuand quelqu'un clique sur le bouton, notre serveur crée un jeton et envoie son navigateur ici (un lien normal ou une redirection, jamais dans une iframe) :\n{origin}/sso?token=<le jeton>&return_to=/b/{id}\n\nLe jeton est un JWT signé en HS256 avec le secret de ce tableau :\n{secret}\n\nSes champs :\n- iss : \"{id}\" (l'identifiant du tableau)\n- aud : \"{origin}\" (exactement cette adresse)\n- sub : l'identifiant de l'utilisateur dans notre produit (toujours le même pour une même personne)\n- name : le nom complet de l'utilisateur\n- email : l'adresse e-mail de l'utilisateur\n- exp : maintenant plus 5 minutes au plus, en secondes\n- jti : un identifiant unique pour chaque jeton (un jeton ne fonctionne qu'une fois)\n\nCréez le jeton sur notre serveur, au moment du clic. N'envoyez jamais le secret au navigateur et ne le mettez pas dans le code front-end : gardez-le avec les autres secrets du serveur.\n\nExemple en Node :\n{snippet}\n",
     createSubmit: "Créer le tableau",
     save: "Enregistrer",
     saved: "Enregistré.",
@@ -563,8 +649,22 @@ const fr: Messages = {
     addressConnected: "Vos tableaux s’ouvrent maintenant à {address}.",
     addressRemoved: "Vos tableaux sont revenus à l’adresse de cette copie.",
     addressHelp: "L’ancienne adresse fonctionne toujours, mais une personne connectée sur l’une ne l’est pas sur l’autre. Le bouton « Idées » de votre produit doit maintenant utiliser la nouvelle adresse : les instructions pour votre développeur, dans l’onglet Relier à votre produit de chaque tableau, l’indiquent déjà.",
+    statusesIdeas: "Idées",
+    statusesBugs: "Bugs",
+    devTitle: "Pour vos développeurs",
+    devLead: "Permet à l'assistant IA de vos développeurs (Claude Code, Cursor, ChatGPT, ou tout outil qui parle MCP) de lire les idées et les bugs de ce tableau, avec leurs votes, statuts et commentaires, pour choisir sur quoi travailler. En lecture seule : il ne peut rien modifier. Un jeton par personne, à révoquer quand elle part.",
+    devTokenName: "Pour qui",
+    devTokenNamePlaceholder: "ex. Sam, back-end",
+    devTokenCreate: "Nouveau jeton",
+    devTokenOnce: "Copiez-les maintenant : le jeton ne s'affichera plus. Tout client MCP se connecte avec cette adresse et cet en-tête ; dans Claude Code, la dernière ligne est la commande à lancer une fois dans un terminal. Demandez ensuite par exemple « quels sont les bugs les plus votés ? ».",
+    devAddress: "Adresse",
+    devHeader: "En-tête",
+    devCopy: "Copier",
+    devTokenUsed: "utilisé le {date}",
+    devTokenNeverUsed: "jamais utilisé",
+    devTokenRevoke: "Révoquer",
   },
-  status: { open: "Ouvert", planned: "Prévu", in_progress: "En cours", done: "Terminé" },
+  status: { open: "Ouvert", planned: "Prévu", in_progress: "En cours", done: "Terminé", new: "Nouveau", confirmed: "Confirmé", fixing: "En correction", fixed: "Corrigé" },
   err: {
     admin_only: "Réservé à l'administrateur.",
     not_found: "Introuvable.",
@@ -579,11 +679,11 @@ const fr: Messages = {
     team_only: "Ouvrez ce tableau depuis le produit que vous utilisez.",
     members_only: "Pour voter, proposer ou commenter, ouvrez ce tableau depuis le produit que vous utilisez.",
     setup_needed: "Ce tableau n'est pas encore configuré.",
-    already_voted: "Vous avez déjà voté pour cette idée.",
+    already_voted: "Vous avez déjà voté.",
     invalid_title: "Entrez un titre, jusqu'à 120 caractères.",
     invalid_body: "Restez sous la limite, ou laissez vide.",
-    invalid_target: "Choisissez une autre idée pour la fusion.",
-    different_board: "Fusionnez uniquement des idées du même tableau.",
+    invalid_target: "Choisissez une autre publication pour la fusion.",
+    different_board: "Fusionnez uniquement des publications du même tableau.",
     cross_origin: "Cette requête a été bloquée. Rechargez et réessayez.",
     server_error: "Une erreur est survenue. Réessayez.",
     too_many: "Trop de tentatives. Réessayez dans une minute.",
@@ -596,6 +696,8 @@ const fr: Messages = {
     invalid_domain: "Tapez seulement l’adresse, comme ideas.your-product.com.",
     domain_no_answer: "Pas encore de réponse de {domain}. Dans Cloudflare, ouvrez Workers & Pages → dozokit-ideas → Domains et ajoutez-la là ; cela peut ensuite prendre quelques minutes.",
     domain_elsewhere: "{domain} ne mène pas encore à votre Dozokit Ideas. Dans Cloudflare, ouvrez Workers & Pages → dozokit-ideas → Domains et ajoutez-la là.",
+    invalid_place: "Limitez « où » à 500 caractères.",
+    invalid_screenshot: "Choisissez une image PNG, JPEG, WebP ou GIF de 5 Mo maximum.",
   },
 };
 
@@ -645,17 +747,32 @@ const es: Messages = {
     filterAll: "Todas",
     sortTop: "Más votadas",
     sortNew: "Recientes",
-    empty: "Todavía no hay ideas. Sé la primera persona en compartir una.",
+    empty: "Nada todavía. Propón una idea o reporta un error.",
     vote: "Votar",
-    voted: "Votado",
     comments: "{n} comentarios",
     by: "por {name} · {date}",
-    membersOnly: "Para votar o proponer una idea, abre este tablero desde el producto que usas.",
-    membersOnlyProduct: "Para votar o proponer una idea, abre Ideas desde {product}.",
+    membersOnly: "Para votar, proponer una idea o reportar un error, abre este tablero desde el producto que usas.",
+    membersOnlyProduct: "Para votar, proponer una idea o reportar un error, abre Ideas desde {product}.",
     similarLead: "¿Ya la propusieron? Vota por ella.",
     votes: "{n} votos",
     suggest: "Proponer una idea",
     close: "Cerrar",
+    lead: "Propón lo que te gustaría, o reporta lo que te molesta. Vota por lo que te importa: lo más votado va primero.",
+    reportBug: "Reportar un error",
+    bugLead: "Cuéntanos qué falló. Quienes también se lo encuentran lo votan (▲), para que el equipo arregle primero lo que más molesta.",
+    bugTitle: "¿Qué falló?",
+    bugBody: "Qué pasó, paso a paso (opcional)",
+    bugExpected: "¿Qué esperabas? (opcional)",
+    bugPlace: "¿Dónde? Una página o un enlace (opcional)",
+    bugScreenshot: "Captura de pantalla (opcional): PNG, JPEG, WebP o GIF, hasta 5 MB",
+    bugSubmit: "Reportar error",
+    bugBadge: "Error",
+    meToo: "A mí también",
+    typeAll: "Todo",
+    typeIdeas: "Ideas",
+    typeBugs: "Errores",
+    emptyIdeas: "Todavía no hay ideas. Sé la primera persona en compartir una.",
+    emptyBugs: "No hay errores reportados. ¿Algo no funciona? Repórtalo.",
   },
   post: {
     back: "Volver al tablero",
@@ -666,15 +783,18 @@ const es: Messages = {
     deleteComment: "Eliminar",
     adminStatus: "Estado",
     adminMerge: "Fusionar con…",
-    mergePlaceholder: "Elige una idea",
+    mergePlaceholder: "Elige una idea o un error",
     mergeSubmit: "Fusionar",
-    delete: "Eliminar esta idea",
+    delete: "Eliminar esta publicación",
     deleteConfirm: "Sus votos y comentarios se mueven o desaparecen, y esto no se puede deshacer.",
-    deleteConfirmSubmit: "Eliminar idea",
+    deleteConfirmSubmit: "Eliminar",
     deleteCancel: "Conservarla",
-    gone: "Esta idea se fusionó con otra, o se eliminó. Búscala en el tablero.",
+    gone: "Esta publicación se fusionó con otra, o se eliminó. Búscala en el tablero.",
     membersOnly: "Para votar o comentar, abre este tablero desde el producto que usas.",
     official: "Respuesta oficial",
+    expected: "Esperado",
+    place: "Dónde",
+    screenshotAlt: "Captura de pantalla del error",
   },
   admin: {
     title: "Admin",
@@ -699,11 +819,11 @@ const es: Messages = {
     statusUp: "Subir",
     statusDown: "Bajar",
     statusRemove: "Quitar",
-    statusesHelp: "Las ideas nuevas empiezan en el primer estado. Quitar un estado mueve sus ideas al primero.",
+    statusesHelp: "Las ideas y los errores nuevos empiezan en el primer estado de su lista. Quitar un estado mueve sus publicaciones al primero.",
     copyLink: "Copiar el enlace",
     openLink: "Abrir",
     boardsEmpty: "Todavía no hay tableros. Crea el primero con Nuevo tablero.",
-    ideasCount: "{n} ideas",
+    ideasCount: "{n} ideas y errores",
     cancel: "Cancelar",
     back: "Todos los tableros",
     tabLook: "Aspecto",
@@ -711,7 +831,7 @@ const es: Messages = {
     productTitle: "Tu producto",
     fieldProductName: "Nombre del producto",
     fieldProductUrl: "Enlace del producto (opcional)",
-    productHelp: "Quienes pueden leer este tablero pero aún no votar leen: «Para votar o proponer una idea, abre Ideas desde» el nombre de tu producto, enlazado a esta dirección. Deja ambos vacíos para mantener la frase general.",
+    productHelp: "Quienes pueden leer este tablero pero aún no votar leen: «Para votar, proponer una idea o reportar un error, abre Ideas desde» el nombre de tu producto, enlazado a esta dirección. Deja ambos vacíos para mantener la frase general.",
     connectPublicStep: "Pon este enlace detrás de un botón «Ideas» en tu aplicación",
     connectPublicHelp: "Cualquiera que lo abra puede leer las ideas, pero no votar, proponer ni comentar.",
     connectSignedTitle: "Para que tus usuarios con sesión iniciada también puedan votar",
@@ -724,7 +844,7 @@ const es: Messages = {
     connectStep3: "Compruébalo",
     connectStep3Help: "Abre el tablero como un miembro inventado, «Test person», para que lo veas exactamente como tus usuarios. Sigues con la sesión de admin iniciada.",
     openAsTest: "Abrir como persona de prueba",
-    devBrief: "Dozokit Ideas: enviar a nuestros usuarios con sesión iniciada al tablero de ideas «{name}»\n\nQué es: un tablero de ideas donde nuestros usuarios proponen ideas, votan y comentan. Solo pueden hacerlo cuando nuestro producto los envía allí con un enlace firmado, que les inicia sesión en este tablero. Por favor, añade un botón «Ideas», visible para los usuarios con sesión iniciada, que haga esto.\n\nTablero: {origin}/b/{id}\n\nCuando alguien hace clic en el botón, nuestro servidor crea un token y envía su navegador aquí (un enlace normal o una redirección, nunca dentro de un iframe):\n{origin}/sso?token=<el token>&return_to=/b/{id}\n\nEl token es un JWT firmado con HS256 usando el secreto de este tablero:\n{secret}\n\nSus campos:\n- iss: \"{id}\" (el id del tablero)\n- aud: \"{origin}\" (exactamente esta dirección)\n- sub: el id del usuario en nuestro producto (siempre el mismo para la misma persona)\n- name: el nombre completo del usuario\n- email: el correo electrónico del usuario\n- exp: ahora más 5 minutos como máximo, en segundos\n- jti: un id único para cada token (un token solo funciona una vez)\n\nCrea el token en nuestro servidor, en el momento del clic. Nunca envíes el secreto al navegador ni lo pongas en el código front-end: guárdalo con los demás secretos del servidor.\n\nEjemplo en Node:\n{snippet}\n",
+    devBrief: "Dozokit Ideas: enviar a nuestros usuarios con sesión iniciada al tablero «{name}» (ideas y reportes de errores)\n\nQué es: un tablero donde nuestros usuarios proponen ideas, reportan errores, votan y comentan. Solo pueden hacerlo cuando nuestro producto los envía allí con un enlace firmado, que les inicia sesión en este tablero. Por favor, añade un botón «Ideas», visible para los usuarios con sesión iniciada, que haga esto.\n\nTablero: {origin}/b/{id}\n\nCuando alguien hace clic en el botón, nuestro servidor crea un token y envía su navegador aquí (un enlace normal o una redirección, nunca dentro de un iframe):\n{origin}/sso?token=<el token>&return_to=/b/{id}\n\nEl token es un JWT firmado con HS256 usando el secreto de este tablero:\n{secret}\n\nSus campos:\n- iss: \"{id}\" (el id del tablero)\n- aud: \"{origin}\" (exactamente esta dirección)\n- sub: el id del usuario en nuestro producto (siempre el mismo para la misma persona)\n- name: el nombre completo del usuario\n- email: el correo electrónico del usuario\n- exp: ahora más 5 minutos como máximo, en segundos\n- jti: un id único para cada token (un token solo funciona una vez)\n\nCrea el token en nuestro servidor, en el momento del clic. Nunca envíes el secreto al navegador ni lo pongas en el código front-end: guárdalo con los demás secretos del servidor.\n\nEjemplo en Node:\n{snippet}\n",
     createSubmit: "Crear tablero",
     save: "Guardar",
     saved: "Guardado.",
@@ -768,8 +888,22 @@ const es: Messages = {
     addressConnected: "Tus tableros se abren ahora en {address}.",
     addressRemoved: "Tus tableros vuelven a estar en la dirección propia de esta copia.",
     addressHelp: "La dirección anterior sigue funcionando, pero quien inicia sesión en una no la tiene iniciada en la otra. El botón «Ideas» de tu producto debe usar ahora la nueva dirección: las instrucciones para tu desarrollador, en la pestaña Conectar con tu producto de cada tablero, ya la muestran.",
+    statusesIdeas: "Ideas",
+    statusesBugs: "Errores",
+    devTitle: "Para tus desarrolladores",
+    devLead: "Permite que el asistente de IA de sus desarrolladores (Claude Code, Cursor, ChatGPT, o cualquier herramienta que hable MCP) lea las ideas y los errores de este tablero, con sus votos, estados y comentarios, para elegir en qué trabajar. Solo lectura: no puede cambiar nada. Un token por persona; revócalo cuando se vaya.",
+    devTokenName: "Para quién",
+    devTokenNamePlaceholder: "p. ej. Sam, backend",
+    devTokenCreate: "Nuevo token",
+    devTokenOnce: "Cópialo ahora: el token no se volverá a mostrar. Cualquier cliente MCP se conecta con esta dirección y esta cabecera; en Claude Code, la última línea es el comando que se ejecuta una vez en una terminal. Luego pregunta cosas como «¿cuáles son los errores más votados?».",
+    devAddress: "Dirección",
+    devHeader: "Cabecera",
+    devCopy: "Copiar",
+    devTokenUsed: "usado el {date}",
+    devTokenNeverUsed: "nunca usado",
+    devTokenRevoke: "Revocar",
   },
-  status: { open: "Abierto", planned: "Planificado", in_progress: "En curso", done: "Hecho" },
+  status: { open: "Abierto", planned: "Planificado", in_progress: "En curso", done: "Hecho", new: "Nuevo", confirmed: "Confirmado", fixing: "En corrección", fixed: "Corregido" },
   err: {
     admin_only: "Solo para el administrador.",
     not_found: "No encontrado.",
@@ -784,11 +918,11 @@ const es: Messages = {
     team_only: "Abre este tablero desde el producto que usas.",
     members_only: "Para votar, proponer o comentar, abre este tablero desde el producto que usas.",
     setup_needed: "Este tablero todavía no está configurado.",
-    already_voted: "Ya votaste por esta idea.",
+    already_voted: "Ya votaste.",
     invalid_title: "Escribe un título, hasta 120 caracteres.",
     invalid_body: "Mantente bajo el límite, o déjalo vacío.",
-    invalid_target: "Elige otra idea para la fusión.",
-    different_board: "Fusiona solo ideas del mismo tablero.",
+    invalid_target: "Elige otra publicación para la fusión.",
+    different_board: "Fusiona solo publicaciones del mismo tablero.",
     cross_origin: "Esa solicitud se bloqueó. Recarga e inténtalo de nuevo.",
     server_error: "Algo salió mal. Inténtalo de nuevo.",
     too_many: "Demasiados intentos. Inténtalo de nuevo en un minuto.",
@@ -801,6 +935,8 @@ const es: Messages = {
     invalid_domain: "Escribe solo la dirección, como ideas.your-product.com.",
     domain_no_answer: "Todavía no hay respuesta de {domain}. En Cloudflare, abre Workers & Pages → dozokit-ideas → Domains y añádela ahí; después puede tardar unos minutos.",
     domain_elsewhere: "{domain} todavía no lleva a tu Dozokit Ideas. En Cloudflare, abre Workers & Pages → dozokit-ideas → Domains y añádela ahí.",
+    invalid_place: "Limita «dónde» a 500 caracteres.",
+    invalid_screenshot: "Elige una imagen PNG, JPEG, WebP o GIF de 5 MB o menos.",
   },
 };
 
@@ -850,17 +986,32 @@ const ptBR: Messages = {
     filterAll: "Todas",
     sortTop: "Mais votadas",
     sortNew: "Recentes",
-    empty: "Ainda não há ideias. Seja a primeira pessoa a compartilhar uma.",
+    empty: "Nada ainda. Sugira uma ideia ou relate um bug.",
     vote: "Votar",
-    voted: "Votado",
     comments: "{n} comentários",
     by: "por {name} · {date}",
-    membersOnly: "Para votar ou sugerir uma ideia, abra este quadro pelo produto que você usa.",
-    membersOnlyProduct: "Para votar ou sugerir uma ideia, abra o Ideas pelo {product}.",
+    membersOnly: "Para votar, sugerir uma ideia ou relatar um bug, abra este quadro pelo produto que você usa.",
+    membersOnlyProduct: "Para votar, sugerir uma ideia ou relatar um bug, abra o Ideas pelo {product}.",
     similarLead: "Já foi sugerida? Vote nela.",
     votes: "{n} votos",
     suggest: "Sugerir uma ideia",
     close: "Fechar",
+    lead: "Sugira o que você gostaria, ou relate o que atrapalha. Vote no que importa para você: o mais votado vem primeiro.",
+    reportBug: "Relatar um bug",
+    bugLead: "Conte o que deu errado. Quem também passar por isso vota nele (▲), para a equipe corrigir primeiro o que mais incomoda.",
+    bugTitle: "O que deu errado?",
+    bugBody: "O que aconteceu, passo a passo (opcional)",
+    bugExpected: "O que você esperava? (opcional)",
+    bugPlace: "Onde? Uma página ou um link (opcional)",
+    bugScreenshot: "Captura de tela (opcional): PNG, JPEG, WebP ou GIF, até 5 MB",
+    bugSubmit: "Relatar bug",
+    bugBadge: "Bug",
+    meToo: "Eu também",
+    typeAll: "Tudo",
+    typeIdeas: "Ideias",
+    typeBugs: "Bugs",
+    emptyIdeas: "Ainda não há ideias. Seja a primeira pessoa a compartilhar uma.",
+    emptyBugs: "Nenhum bug relatado. Algo não funciona? Relate.",
   },
   post: {
     back: "Voltar ao quadro",
@@ -871,15 +1022,18 @@ const ptBR: Messages = {
     deleteComment: "Excluir",
     adminStatus: "Status",
     adminMerge: "Mesclar com…",
-    mergePlaceholder: "Escolha uma ideia",
+    mergePlaceholder: "Escolha uma ideia ou um bug",
     mergeSubmit: "Mesclar",
-    delete: "Excluir esta ideia",
+    delete: "Excluir esta publicação",
     deleteConfirm: "Os votos e comentários dela são movidos ou somem, e isso não pode ser desfeito.",
-    deleteConfirmSubmit: "Excluir ideia",
+    deleteConfirmSubmit: "Excluir",
     deleteCancel: "Manter",
-    gone: "Esta ideia foi mesclada com outra, ou removida. Procure por ela no quadro.",
+    gone: "Esta publicação foi mesclada com outra, ou removida. Procure por ela no quadro.",
     membersOnly: "Para votar ou comentar, abra este quadro pelo produto que você usa.",
     official: "Resposta oficial",
+    expected: "Esperado",
+    place: "Onde",
+    screenshotAlt: "Captura de tela do bug",
   },
   admin: {
     title: "Admin",
@@ -904,11 +1058,11 @@ const ptBR: Messages = {
     statusUp: "Subir",
     statusDown: "Descer",
     statusRemove: "Remover",
-    statusesHelp: "As ideias novas começam no primeiro status. Remover um status move as ideias dele para o primeiro.",
+    statusesHelp: "As ideias e os bugs novos começam no primeiro status da sua lista. Remover um status move as publicações dele para o primeiro.",
     copyLink: "Copiar o link",
     openLink: "Abrir",
     boardsEmpty: "Ainda não há quadros. Crie o primeiro com Novo quadro.",
-    ideasCount: "{n} ideias",
+    ideasCount: "{n} ideias e bugs",
     cancel: "Cancelar",
     back: "Todos os quadros",
     tabLook: "Aparência",
@@ -916,7 +1070,7 @@ const ptBR: Messages = {
     productTitle: "Seu produto",
     fieldProductName: "Nome do produto",
     fieldProductUrl: "Link do produto (opcional)",
-    productHelp: "Quem pode ler este quadro mas ainda não pode votar lê: “Para votar ou sugerir uma ideia, abra o Ideas pelo” nome do seu produto, com link para este endereço. Deixe os dois vazios para manter a frase geral.",
+    productHelp: "Quem pode ler este quadro mas ainda não pode votar lê: “Para votar, sugerir uma ideia ou relatar um bug, abra o Ideas pelo” nome do seu produto, com link para este endereço. Deixe os dois vazios para manter a frase geral.",
     connectPublicStep: "Coloque este link atrás de um botão “Ideias” no seu app",
     connectPublicHelp: "Qualquer pessoa que o abrir pode ler as ideias, mas não votar, sugerir nem comentar.",
     connectSignedTitle: "Para que os seus usuários conectados também possam votar",
@@ -929,7 +1083,7 @@ const ptBR: Messages = {
     connectStep3: "Confira",
     connectStep3Help: "Abre o quadro como um membro inventado, “Test person”, para você ver exatamente o que os seus usuários verão. Você continua conectado à página de admin.",
     openAsTest: "Abrir como pessoa de teste",
-    devBrief: "Dozokit Ideas: enviar os nossos usuários conectados para o quadro de ideias \"{name}\"\n\nO que é: um quadro de ideias onde os nossos usuários sugerem ideias, votam e comentam. Eles só podem fazer isso quando o nosso produto os envia para lá com um link assinado, que os conecta a este quadro. Por favor, adicione um botão \"Ideias\", visível para usuários conectados, que faça isso.\n\nQuadro: {origin}/b/{id}\n\nQuando alguém clica no botão, o nosso servidor gera um token e envia o navegador para cá (um link normal ou um redirecionamento, nunca dentro de um iframe):\n{origin}/sso?token=<o token>&return_to=/b/{id}\n\nO token é um JWT assinado com HS256 usando o secret deste quadro:\n{secret}\n\nOs campos dele:\n- iss: \"{id}\" (o id do quadro)\n- aud: \"{origin}\" (exatamente este endereço)\n- sub: o id do usuário no nosso produto (sempre o mesmo para a mesma pessoa)\n- name: o nome completo do usuário\n- email: o e-mail do usuário\n- exp: agora mais 5 minutos no máximo, em segundos\n- jti: um id único para cada token (um token só funciona uma vez)\n\nGere o token no nosso servidor, no momento do clique. Nunca envie o secret para o navegador nem o coloque no código front-end: guarde-o junto com os outros secrets do servidor.\n\nExemplo em Node:\n{snippet}\n",
+    devBrief: "Dozokit Ideas: enviar os nossos usuários conectados para o quadro \"{name}\" (ideias e relatos de bugs)\n\nO que é: um quadro onde os nossos usuários sugerem ideias, relatam bugs, votam e comentam. Eles só podem fazer isso quando o nosso produto os envia para lá com um link assinado, que os conecta a este quadro. Por favor, adicione um botão \"Ideias\", visível para usuários conectados, que faça isso.\n\nQuadro: {origin}/b/{id}\n\nQuando alguém clica no botão, o nosso servidor gera um token e envia o navegador para cá (um link normal ou um redirecionamento, nunca dentro de um iframe):\n{origin}/sso?token=<o token>&return_to=/b/{id}\n\nO token é um JWT assinado com HS256 usando o secret deste quadro:\n{secret}\n\nOs campos dele:\n- iss: \"{id}\" (o id do quadro)\n- aud: \"{origin}\" (exatamente este endereço)\n- sub: o id do usuário no nosso produto (sempre o mesmo para a mesma pessoa)\n- name: o nome completo do usuário\n- email: o e-mail do usuário\n- exp: agora mais 5 minutos no máximo, em segundos\n- jti: um id único para cada token (um token só funciona uma vez)\n\nGere o token no nosso servidor, no momento do clique. Nunca envie o secret para o navegador nem o coloque no código front-end: guarde-o junto com os outros secrets do servidor.\n\nExemplo em Node:\n{snippet}\n",
     createSubmit: "Criar quadro",
     save: "Salvar",
     saved: "Salvo.",
@@ -973,8 +1127,22 @@ const ptBR: Messages = {
     addressConnected: "Seus quadros agora abrem em {address}.",
     addressRemoved: "Seus quadros voltaram para o endereço próprio desta cópia.",
     addressHelp: "O endereço antigo continua funcionando, mas quem está conectado em um não está no outro. O botão “Ideias” do seu produto agora precisa usar o novo endereço: as instruções para o seu desenvolvedor, na aba Conectar ao seu produto de cada quadro, já o mostram.",
+    statusesIdeas: "Ideias",
+    statusesBugs: "Bugs",
+    devTitle: "Para os seus desenvolvedores",
+    devLead: "Permite que o assistente de IA dos seus desenvolvedores (Claude Code, Cursor, ChatGPT, ou qualquer ferramenta que fale MCP) leia as ideias e os bugs deste quadro, com votos, status e comentários, para escolher no que trabalhar. Somente leitura: não pode mudar nada. Um token por pessoa; revogue quando ela sair.",
+    devTokenName: "Para quem",
+    devTokenNamePlaceholder: "ex.: Sam, backend",
+    devTokenCreate: "Novo token",
+    devTokenOnce: "Copie agora: o token não aparece de novo. Qualquer cliente MCP se conecta com este endereço e este cabeçalho; no Claude Code, a última linha é o comando para rodar uma vez num terminal. Depois pergunte coisas como “quais são os bugs mais votados?”.",
+    devAddress: "Endereço",
+    devHeader: "Cabeçalho",
+    devCopy: "Copiar",
+    devTokenUsed: "usado em {date}",
+    devTokenNeverUsed: "nunca usado",
+    devTokenRevoke: "Revogar",
   },
-  status: { open: "Aberto", planned: "Planejado", in_progress: "Em andamento", done: "Concluído" },
+  status: { open: "Aberto", planned: "Planejado", in_progress: "Em andamento", done: "Concluído", new: "Novo", confirmed: "Confirmado", fixing: "Em correção", fixed: "Corrigido" },
   err: {
     admin_only: "Somente para o administrador.",
     not_found: "Não encontrado.",
@@ -989,11 +1157,11 @@ const ptBR: Messages = {
     team_only: "Abra este quadro pelo produto que você usa.",
     members_only: "Para votar, sugerir ou comentar, abra este quadro pelo produto que você usa.",
     setup_needed: "Este quadro ainda não está configurado.",
-    already_voted: "Você já votou nesta ideia.",
+    already_voted: "Você já votou.",
     invalid_title: "Digite um título, até 120 caracteres.",
     invalid_body: "Fique dentro do limite, ou deixe vazio.",
-    invalid_target: "Escolha outra ideia para a mesclagem.",
-    different_board: "Mescle só ideias do mesmo quadro.",
+    invalid_target: "Escolha outra publicação para a mesclagem.",
+    different_board: "Mescle só publicações do mesmo quadro.",
     cross_origin: "Essa requisição foi bloqueada. Recarregue e tente de novo.",
     server_error: "Algo deu errado. Tente de novo.",
     too_many: "Muitas tentativas. Tente de novo em um minuto.",
@@ -1006,6 +1174,8 @@ const ptBR: Messages = {
     invalid_domain: "Digite só o endereço, como ideas.your-product.com.",
     domain_no_answer: "Ainda sem resposta de {domain}. No Cloudflare, abra Workers & Pages → dozokit-ideas → Domains e adicione-o lá; depois disso pode levar alguns minutos.",
     domain_elsewhere: "{domain} ainda não leva ao seu Dozokit Ideas. No Cloudflare, abra Workers & Pages → dozokit-ideas → Domains e adicione-o lá.",
+    invalid_place: "Limite o “onde” a 500 caracteres.",
+    invalid_screenshot: "Escolha uma imagem PNG, JPEG, WebP ou GIF de até 5 MB.",
   },
 };
 

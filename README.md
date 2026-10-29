@@ -1,6 +1,6 @@
 # Dozokit Ideas
 
-A board where the people who use your product post ideas, vote once each, and comment on them. You choose each board's statuses (planned, in progress, done, or your own), its logo and colour, and merge the duplicates together. It lives in your Cloudflare account, and nobody can switch it off but you.
+A board for your product's ideas and bug reports. The people who use it suggest ideas, report what gets in their way (what happened, what they expected, where, and a screenshot), vote once each, and comment; the most voted come first, so you see what matters most to them. You choose each board's statuses, for ideas (planned, in progress, done, or your own) and for bugs (new, confirmed, fixing, fixed, or your own), its logo and colour, and merge the duplicates together. Your developers read it all from their coding assistant. It lives in your Cloudflare account, and nobody can switch it off but you.
 
 [![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/dozokit/ideas)
 
@@ -15,7 +15,8 @@ You need a free Cloudflare account and a GitHub (or GitLab) account.
 That's it.
 
 - **Public or private**: anyone with a public board's link can read it; a private board shows nothing to anyone but you and the people your product sent there. Either way, only those people vote, suggest and comment.
-- **Your admin page** has three screens: **Admin** lists your boards (link, number of ideas, Copy link, Open, Settings); a board's **Settings** has the tabs **Look** (name, visibility, logo, colour, your product's name and link), **Statuses** and **Connect to your product**; **Settings** in the top bar holds your own address, updates, the version and the password.
+- **Ideas and bugs**: a board has **Suggest an idea** and **Report a bug**, and the tabs All, Ideas and Bugs. People vote for ideas and bugs with the same ▲ button.
+- **Your admin page** has three screens: **Admin** lists your boards (link, number of ideas and bugs, Copy link, Open, Settings); a board's **Settings** has the tabs **Look** (name, visibility, logo, colour, your product's name and link), **Statuses** (one list for ideas, one for bugs) and **Connect to your product** (with **For your developers**); **Settings** in the top bar holds your own address, updates, the version and the password.
 - **You take part too**: signed in to the admin page, you suggest, vote and comment on any board as "<board name> team". Your comments show as **Official answer**.
 - **Your product's name**: set it in Look, and visitors who can read the board but not vote yet are told to open Ideas from it (linked, if you give its address).
 - **Your own address**: Settings → Your own address puts all your boards on an address of your own, like `ideas.your-product.com/b/<board>`. Answer whether you have a domain, follow the steps (in Cloudflare, add it to the `dozokit-ideas` Worker's **Domains**), then **Check and connect**: it's saved only once it reaches your copy. Board links and the developer instructions then use it. The old address keeps working, but people sign in on each address separately, so point your product's Ideas button at the new one.
@@ -49,20 +50,30 @@ const url = `https://ideas.example.com/sso?token=${header}.${payload}.${sig}&ret
 
 **Copy instructions for your developer** copies this same snippet already filled in with the board's own id, address and secret, with the rules above, as plain text to paste to your developer or a coding assistant.
 
+## Your developers, from their AI assistant
+
+A board's **Settings** → **Connect to your product** → **For your developers** makes a token, one per person, shown once. Any MCP client (Claude Code, Cursor, ChatGPT…) connects to `https://<your address>/mcp` with the header `Authorization: Bearer <the token>`; in Claude Code that is one command:
+
+```bash
+claude mcp add --transport http <board>-ideas https://<your address>/mcp --header "Authorization: Bearer <the token>"
+```
+
+Their coding assistant can then read that board, never change it: `list_posts` (newest first), `top_posts` (most voted), both filtered by type (idea or bug) and status, `search_posts` (title and text), and `get_post` (one post in full, with what the person expected, where, and every comment). **Revoke** stops a token at once; the list shows when each was last used. Only a hash of each token is kept.
+
 ## Updates
 
 Your admin page tells you when a newer version is out (Settings → Updates; untick **Check for new versions** and nothing is sent). Open your copy on GitHub, then **Actions** → **Update Dozokit Ideas** → **Run workflow**. It installs the latest release, once it checks the release is signed with Dozokit's release key (a wrong or missing signature stops it and changes nothing), and keeps your `wrangler.jsonc` (it holds your database's id); Cloudflare rebuilds and deploys within a couple of minutes, database changes included. [CHANGELOG.md](CHANGELOG.md) says what changed. **The first time**, add that button: Cloudflare's Deploy button copies everything except `.github`, so open **Settings → Updates**, paste your copy's address, click **Add the update button**, then **Commit changes** on GitHub.
 
 ## Backups
 
-Every Sunday at 03:00 UTC, your boards, ideas, votes and comments are copied to the private Cloudflare R2 bucket `dozokit-ideas-backups`, as one file `backups/<day>.json` with every table's rows under its name; the last 4 are kept. A database over 200,000 rows isn't copied (each copy reads every row), and the admin password isn't either. To restore, insert each table's rows back into the table with the same name. The backup also holds each board's signing secret, so keep that bucket private. Coming from 1.0, the first weekly copy removes the old `backups/<day>/<table>/` files.
+Every Sunday at 03:00 UTC, your boards, ideas, bug reports, votes and comments are copied to the private Cloudflare R2 bucket `dozokit-ideas-backups`, as one file `backups/<day>.json` with every table's rows under its name; the last 4 are kept. A database over 200,000 rows isn't copied (each copy reads every row), and the admin password isn't either. To restore, insert each table's rows back into the table with the same name. The backup also holds each board's signing secret, so keep that bucket private. Coming from 1.0, the first weekly copy removes the old `backups/<day>/<table>/` files. Bug screenshots sit in the same bucket under `screenshots/`, outside the weekly copy; a board shows them only to the people who can see it.
 
 ## How it counts
 
 - No email is ever sent: no notifications, no digests.
 - When your product sends someone in, their name and email are kept, so their name shows next to what they post and you can recognise who it is.
-- One vote per person per idea; pressing the vote button again takes it back. Whoever suggests an idea votes for it.
-- While someone types a new idea's title, up to 3 ideas of the same board that match show under it, so they can vote for one instead.
+- One vote per person per idea or bug; pressing the vote button again takes it back. Whoever posts it votes for it.
+- While someone types a new title, up to 3 posts of the same board that match show under it, so they can vote for one instead.
 
 ## Run it locally
 
@@ -77,9 +88,10 @@ To post or vote locally, sign in to `/admin` (you post as the board's team), or 
 
 ## Limits
 
-- Free Cloudflare plan: 10 ms of CPU time per request, and 5 million database rows read a day.
-- One vote per person per idea.
-- A board shows its 200 most recent or most voted ideas.
+- Free Cloudflare plan: 10 ms of CPU time per request, and 5 million database rows read a day. Screenshots use R2's free 10 GB.
+- One vote per person per idea or bug.
+- A screenshot is a PNG, JPEG, WebP or GIF of 5 MB at most.
+- A board shows its 200 most recent or most voted posts.
 
 ## Third parties
 

@@ -7,7 +7,8 @@ export class ApiError extends Error {
 export async function api<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(path, {
     ...init,
-    headers: init?.body ? { "content-type": "application/json", ...init.headers } : init?.headers,
+    // A FormData body (a bug with its screenshot) sets its own content type.
+    headers: typeof init?.body === "string" ? { "content-type": "application/json", ...init.headers } : init?.headers,
   });
   const body = await res.json().catch(() => null);
   if (!res.ok) throw new ApiError(typeof body?.error === "string" ? body.error : "server_error", res.status, body);

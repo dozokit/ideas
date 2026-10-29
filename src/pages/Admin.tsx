@@ -1,7 +1,7 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { api } from "../lib/api";
 import { LANGS, errorText, format, useT, type Lang } from "../i18n";
-import type { BoardStatus, BoardSummary, Visibility } from "../lib/types";
+import type { BoardStatus, BoardSummary, DevToken, Visibility } from "../lib/types";
 import { TurnOnUpdates } from "./TurnOnUpdates";
 import { ChangePassword } from "./Password";
 import type { Navigate } from "../App";
@@ -76,6 +76,144 @@ function BoardLink({ id, address }: { id: string; address: string }) {
   );
 }
 
+// One list of statuses (ideas' or bugs'): rename, reorder, remove, add.
+function StatusList({ statuses, onChange }: { statuses: BoardStatus[]; onChange: (s: BoardStatus[]) => void }) {
+  const { t } = useT();
+  const move = (i: number, j: number) => {
+    const next = [...statuses];
+    [next[i], next[j]] = [next[j], next[i]];
+    onChange(next);
+  };
+  return (
+    <fieldset className="statuses">
+      {statuses.map((s, i) => (
+        <div className="status-row" key={s.id}>
+          <input
+            type="text"
+            maxLength={40}
+            aria-label={t.admin.statusName}
+            placeholder={(t.status as Record<string, string>)[s.id] ?? ""}
+            value={s.label}
+            onChange={(e) => onChange(statuses.map((x) => (x.id === s.id ? { ...x, label: e.target.value } : x)))}
+            data-testid="status-label"
+          />
+          <button type="button" className="btn btn--quiet btn--small" disabled={i === 0} onClick={() => move(i, i - 1)}>
+            {t.admin.statusUp}
+          </button>
+          <button type="button" className="btn btn--quiet btn--small" disabled={i === statuses.length - 1} onClick={() => move(i, i + 1)}>
+            {t.admin.statusDown}
+          </button>
+          <button type="button" className="btn btn--quiet btn--small" disabled={statuses.length === 1} onClick={() => onChange(statuses.filter((x) => x.id !== s.id))}>
+            {t.admin.statusRemove}
+          </button>
+        </div>
+      ))}
+      <div>
+        <button type="button" className="btn btn--quiet btn--small" onClick={() => onChange([...statuses, { id: crypto.randomUUID().slice(0, 8), label: "" }])}>
+          {t.admin.statusAdd}
+        </button>
+      </div>
+    </fieldset>
+  );
+}
+
+// Connect → For your developers: tokens that let a coding assistant read this board through /mcp.
+function DevTokens({ id, address }: { id: string; address: string }) {
+  const { t, lang } = useT();
+  const [tokens, setTokens] = useState<DevToken[] | null>(null);
+  const [name, setName] = useState("");
+  const [fresh, setFresh] = useState<DevToken | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    api<DevToken[]>(`/api/boards/${id}/tokens`).then(setTokens, (e) => setError(errorText(t, e)));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id]);
+
+  async function create(e: FormEvent) {
+    e.preventDefault();
+    setBusy(true);
+    setError(null);
+    try {
+      const tok = await api<DevToken>(`/api/boards/${id}/tokens`, { method: "POST", body: JSON.stringify({ name }) });
+      setFresh(tok);
+      setTokens((ts) => [tok, ...(ts ?? [])]);
+      setName("");
+    } catch (err) {
+      setError(errorText(t, err));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function revoke(tokenId: number) {
+    setError(null);
+    try {
+      await api(`/api/tokens/${tokenId}`, { method: "DELETE" });
+      setTokens((ts) => (ts ?? []).filter((x) => x.id !== tokenId));
+      if (fresh?.id === tokenId) setFresh(null);
+    } catch (err) {
+      setError(errorText(t, err));
+    }
+  }
+
+  // What any MCP client needs (the address and the header), then Claude Code's one-line command as an example.
+  const connection =
+    fresh &&
+    [`${t.admin.devAddress}: ${address}/mcp`, `${t.admin.devHeader}: Authorization: Bearer ${fresh.token}`, "", `Claude Code: claude mcp add --transport http ${id}-ideas ${address}/mcp --header "Authorization: Bearer ${fresh.token}"`].join("\n");
+
+  return (
+    <div className="dev-tokens">
+      <h2 className="steps-title">{t.admin.devTitle}</h2>
+      <p className="help">{t.admin.devLead}</p>
+      <form className="field-row" onSubmit={create}>
+        <label className="field">
+          <span>{t.admin.devTokenName}</span>
+          <input type="text" required maxLength={60} placeholder={t.admin.devTokenNamePlaceholder} value={name} onChange={(e) => setName(e.target.value)} data-testid="token-name" />
+        </label>
+        <button type="submit" className="btn btn--ink" disabled={busy} data-testid="token-create">
+          {t.admin.devTokenCreate}
+        </button>
+      </form>
+      {connection && (
+        <div className="dev-token-fresh stock" data-testid="token-fresh">
+          <p className="help">{t.admin.devTokenOnce}</p>
+          <pre className="sso-secret dev-token-connection">{connection}</pre>
+          <div className="sso-row">
+            <button
+              type="button"
+              className="btn btn--quiet btn--small"
+              onClick={async () => {
+                await navigator.clipboard.writeText(connection);
+                setCopied(true);
+                setTimeout(() => setCopied(false), 2500);
+              }}
+            >
+              {copied ? t.admin.ssoCopied : t.admin.devCopy}
+            </button>
+          </div>
+        </div>
+      )}
+      {tokens && tokens.length > 0 && (
+        <ul className="dev-token-list">
+          {tokens.map((x) => (
+            <li key={x.id}>
+              <strong>{x.name}</strong>{" "}
+              <span className="help">{x.lastUsedAt ? format(t.admin.devTokenUsed, { date: new Date(x.lastUsedAt).toLocaleDateString(lang) }) : t.admin.devTokenNeverUsed}</span>
+              <button type="button" className="btn btn--quiet btn--small" onClick={() => revoke(x.id)} data-testid="token-revoke">
+                {t.admin.devTokenRevoke}
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+      {error && <p className="help help--error">{error}</p>}
+    </div>
+  );
+}
+
 // /admin/b/:id: a board's settings, in three tabs.
 export function BoardSettings({ id, address, navigate }: { id: string; address: string; navigate: Navigate }) {
   const { t } = useT();
@@ -90,6 +228,7 @@ export function BoardSettings({ id, address, navigate }: { id: string; address: 
   const [productUrl, setProductUrl] = useState("");
   const [boardLang, setBoardLang] = useState<Lang | null>(null);
   const [statuses, setStatuses] = useState<BoardStatus[]>([]);
+  const [bugStatuses, setBugStatuses] = useState<BoardStatus[]>([]);
   const [saveBusy, setSaveBusy] = useState(false);
   const [saveMsg, setSaveMsg] = useState<string | null>(null);
   const [sso, setSso] = useState<{ secret: string; audience: string } | null>(null);
@@ -109,6 +248,7 @@ export function BoardSettings({ id, address, navigate }: { id: string; address: 
     setProductUrl(b.productUrl ?? "");
     setBoardLang(b.lang);
     setStatuses(b.statuses);
+    setBugStatuses(b.bugStatuses);
   };
 
   useEffect(() => {
@@ -129,13 +269,6 @@ export function BoardSettings({ id, address, navigate }: { id: string; address: 
       setSaveBusy(false);
     }
   }
-
-  const move = (i: number, j: number) =>
-    setStatuses((ss) => {
-      const next = [...ss];
-      [next[i], next[j]] = [next[j], next[i]];
-      return next;
-    });
 
   async function loadSso() {
     setSsoError(null);
@@ -350,37 +483,12 @@ export function BoardSettings({ id, address, navigate }: { id: string; address: 
       )}
 
       {tab === "statuses" && (
-        <form onSubmit={(e) => save(e, { statuses })}>
-          <fieldset className="statuses">
-            {statuses.map((s, i) => (
-              <div className="status-row" key={s.id}>
-                <input
-                  type="text"
-                  maxLength={40}
-                  aria-label={t.admin.statusName}
-                  placeholder={(t.status as Record<string, string>)[s.id] ?? ""}
-                  value={s.label}
-                  onChange={(e) => setStatuses((ss) => ss.map((x) => (x.id === s.id ? { ...x, label: e.target.value } : x)))}
-                  data-testid="status-label"
-                />
-                <button type="button" className="btn btn--quiet btn--small" disabled={i === 0} onClick={() => move(i, i - 1)}>
-                  {t.admin.statusUp}
-                </button>
-                <button type="button" className="btn btn--quiet btn--small" disabled={i === statuses.length - 1} onClick={() => move(i, i + 1)}>
-                  {t.admin.statusDown}
-                </button>
-                <button type="button" className="btn btn--quiet btn--small" disabled={statuses.length === 1} onClick={() => setStatuses((ss) => ss.filter((x) => x.id !== s.id))}>
-                  {t.admin.statusRemove}
-                </button>
-              </div>
-            ))}
-            <div>
-              <button type="button" className="btn btn--quiet btn--small" onClick={() => setStatuses((ss) => [...ss, { id: crypto.randomUUID().slice(0, 8), label: "" }])}>
-                {t.admin.statusAdd}
-              </button>
-            </div>
-            <p className="help">{t.admin.statusesHelp}</p>
-          </fieldset>
+        <form onSubmit={(e) => save(e, { statuses, bugStatuses })}>
+          <h2>{t.admin.statusesIdeas}</h2>
+          <StatusList statuses={statuses} onChange={setStatuses} />
+          <h2>{t.admin.statusesBugs}</h2>
+          <StatusList statuses={bugStatuses} onChange={setBugStatuses} />
+          <p className="help">{t.admin.statusesHelp}</p>
           {saveRow}
         </form>
       )}
@@ -401,6 +509,7 @@ export function BoardSettings({ id, address, navigate }: { id: string; address: 
         ) : (
           signedSteps
         ))}
+      {tab === "connect" && <DevTokens id={id} address={address} />}
     </div>
   );
 }

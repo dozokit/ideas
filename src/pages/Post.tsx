@@ -3,7 +3,7 @@ import { api, ApiError } from "../lib/api";
 import { errorText, format, formatDate, statusLabel, useT } from "../i18n";
 import type { Comment, Me, PostPage, PostSummary } from "../lib/types";
 import type { Navigate } from "../App";
-import { NoAccess, showBoardInTab } from "./Board";
+import { NoAccess, showBoardInTab, statusesFor } from "./Board";
 
 export function Post({ boardId, postId, me, navigate }: { boardId: string; postId: number; me: Me; navigate: Navigate }) {
   const { t, lang, setLang } = useT();
@@ -82,7 +82,8 @@ export function Post({ boardId, postId, me, navigate }: { boardId: string; postI
     );
   }
 
-  const statuses = page.board.statuses;
+  const statuses = statusesFor(page.board, page.post.type);
+  const bug = page.post.type === "bug";
 
   // A second press takes the vote back.
   async function vote() {
@@ -173,16 +174,39 @@ export function Post({ boardId, postId, me, navigate }: { boardId: string; postI
 
       <div className="post-head">
         <div className="post-head-top">
-          <button type="button" className="vote-btn" data-testid="vote-button" disabled={voteBusy} aria-pressed={voted} onClick={vote}>
+          <button type="button" className="vote-btn" data-testid="vote-button" disabled={voteBusy} aria-pressed={voted} aria-label={bug ? t.board.meToo : t.board.vote} onClick={vote}>
+            <span className="vote-btn-label" aria-hidden="true">▲</span>
             <span className="fig">{votes}</span>
-            <span className="vote-btn-label">{voted ? t.board.voted : t.board.vote}</span>
           </button>
+          {bug && <span className="badge badge--bug">{t.board.bugBadge}</span>}
           <h1>{page.post.title}</h1>
           {status !== statuses[0].id && <span className={`badge badge--${status}`}>{statusLabel(t, statuses.find((s) => s.id === status) ?? { id: status, label: "" })}</span>}
         </div>
         {voteMsg && <p className="help help--error">{voteMsg}</p>}
         <p className="help">{format(t.board.by, { name: page.post.author, date: formatDate(page.post.createdAt, lang) })}</p>
         {page.post.body && <p className="post-body">{page.post.body}</p>}
+        {bug && (
+          <dl className="bug-facts">
+            {page.post.expected && (
+              <>
+                <dt>{t.post.expected}</dt>
+                <dd>{page.post.expected}</dd>
+              </>
+            )}
+            {page.post.place && (
+              <>
+                <dt>{t.post.place}</dt>
+                {/* A link only when it is one; anything else shows as typed. */}
+                <dd>{/^https?:\/\/\S+$/.test(page.post.place) ? <a href={page.post.place} rel="noopener nofollow noreferrer" target="_blank">{page.post.place}</a> : page.post.place}</dd>
+              </>
+            )}
+          </dl>
+        )}
+        {page.post.screenshot && (
+          <a href={`/api/posts/${postId}/screenshot`} target="_blank" rel="noopener">
+            <img className="bug-screenshot" src={`/api/posts/${postId}/screenshot`} alt={t.post.screenshotAlt} data-testid="bug-screenshot-img" />
+          </a>
+        )}
       </div>
 
       {me.admin && (

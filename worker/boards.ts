@@ -7,6 +7,7 @@ export interface Board {
   visibility: "public" | "team";
   sso_secret: string;
   statuses: string;
+  bug_statuses: string;
   logo: string | null;
   color: string | null;
   product_name: string | null;
@@ -17,7 +18,10 @@ export interface Board {
 
 export const BOARD_ID = /^[a-z0-9-]{2,40}$/;
 
-export const getBoard = (env: Env, id: string) => env.DB.prepare("select * from boards where id = ?").bind(id).first<Board>();
+// The statuses a post of this type can have: ideas use the board's statuses, bugs its bug statuses.
+export const statusesOf = (board: Board, type: string): { id: string; label: string }[] => JSON.parse(type === "bug" ? board.bug_statuses : board.statuses);
+
+export const getBoard =(env: Env, id: string) => env.DB.prepare("select * from boards where id = ?").bind(id).first<Board>();
 
 // Members, the people this board's signed link let in (a row in board_members), vote, post and
 // comment. Anyone can read a public board; a private one ("team") only its members and the admin.

@@ -1,7 +1,7 @@
 import type { Env } from "./index";
 import { currentUser } from "./auth";
 import { changePassword, isAdmin, setupNeeded } from "./admin";
-import { getBoard, access, BOARD_ID, type Board } from "./boards";
+import { getBoard, access, statusesOf, BOARD_ID, type Board } from "./boards";
 import { b64url, hmacSign, randomToken } from "./crypto";
 import type { User } from "./users";
 
@@ -9,7 +9,7 @@ const json = (body: unknown, status = 200) => Response.json(body, { status, head
 // The app's languages (src/i18n.ts LANGS): a board set to one of them shows only that one.
 const LANGS = ["en", "fr", "es", "pt-BR"];
 
-const BUILT_IN_STATUSES = ["open", "planned", "in_progress", "done"];
+const BUILT_IN_STATUSES = ["open", "planned", "in_progress", "done", "new", "confirmed", "fixing", "fixed"];
 
 function requiredText(raw: unknown, max: number): string | null {
   if (typeof raw !== "string") return null;
@@ -49,12 +49,12 @@ function cleanStatuses(raw: unknown): { id: string; label: string }[] | null {
 
 const cleanVisibility = (raw: unknown) => (raw === "public" || raw === "team" ? raw : null);
 
-const boardView = (b: Board) => ({ id: b.id, name: b.name, visibility: b.visibility, statuses: JSON.parse(b.statuses), logo: b.logo, color: b.color, productName: b.product_name, productUrl: b.product_url, lang: b.lang, createdAt: b.created_at });
+const boardView = (b: Board) => ({ id: b.id, name: b.name, visibility: b.visibility, statuses: JSON.parse(b.statuses), bugStatuses: JSON.parse(b.bug_statuses), logo: b.logo, color: b.color, productName: b.product_name, productUrl: b.product_url, lang: b.lang, createdAt: b.created_at });
 const teamOnly = () => json({ error: "team_only" }, 403);
 const membersOnly = () => json({ error: "members_only" }, 403);
 
 // This copy's release. Raise it with each tag on github.com/dozokit/ideas (v1.2.3) and its CHANGELOG.md entry.
-const VERSION = "1.3.0";
+export const VERSION = "1.4.0";
 
 // This copy's random id and whether it checks for new versions, made on first use.
 async function install(env: Env) {
@@ -112,7 +112,7 @@ export const CHECK = "/.well-known/dozokit-ideas";
 const savedDomain = async (env: Env) => (await env.DB.prepare("select domain from address where id = 1").first<{ domain: string }>())?.domain ?? null;
 
 // Where the boards are: that domain, else this copy's own address.
-async function boardsOrigin(env: Env, url: URL) {
+export async function boardsOrigin(env: Env, url: URL) {
   const domain = await savedDomain(env);
   return domain ? `https://${domain}` : url.origin;
 }
@@ -183,6 +183,8 @@ async function updateBoard(req: Request, env: Env, admin: boolean, id: string) {
   if (color === undefined) return json({ error: "invalid_color" }, 400);
   const statuses = body.statuses === undefined ? JSON.parse(board.statuses) : cleanStatuses(body.statuses);
   if (!statuses) return json({ error: "invalid_statuses" }, 400);
+  const bugStatuses = body.bugStatuses === undefined ? JSON.parse(board.bug_statuses) : cleanStatuses(body.bugStatuses);
+  if (!bugStatuses) return json({ error: "invalid_statuses" }, 400);
   const productName = body.productName === undefined ? board.product_name : optionalText(body.productName, 100);
   if (productName === undefined) return json({ error: "invalid_product_name" }, 400);
   // Shown as a link to visitors, so https only.
@@ -191,14 +193,17 @@ async function updateBoard(req: Request, env: Env, admin: boolean, id: string) {
   const lang = body.lang === undefined ? board.lang : body.lang === null || body.lang === "" ? null : typeof body.lang === "string" && LANGS.includes(body.lang) ? body.lang : undefined;
   if (lang === undefined) return json({ error: "invalid_lang" }, 400);
   const list = JSON.stringify(statuses);
+  const bugList = JSON.stringify(bugStatuses);
+  const moveRemoved = "update posts set status = ? where board_id = ? and type = ? and status not in (select json_extract(value, '$.id') from json_each(?))";
   await env.DB.batch([
-    env.DB.prepare("update boards set name = ?, visibility = ?, logo = ?, color = ?, statuses = ?, product_name = ?, product_url = ?, lang = ? where id = ?").bind(name, visibility, logo, color, list, productName, productUrl, lang, id),
-    // The ideas of a removed status move to the first one.
-    env.DB.prepare("update posts set status = ? where board_id = ? and status not in (select json_extract(value, '$.id') from json_each(?))").bind(statuses[0].id, id, list),
+    env.DB.prepare("update boards set name = ?, visibility = ?, logo = ?, color = ?, statuses = ?, bug_statuses = ?, product_name = ?, product_url = ?, lang = ? where id = ?").bind(name, visibility, logo, color, list, bugList, productName, productUrl, lang, id),
+    // The posts of a removed status move to the first one of their type.
+    env.DB.prepare(moveRemoved).bind(statuses[0].id, id, "idea", list),
+    env.DB.prepare(moveRemoved).bind(bugStatuses[0].id, id, "bug", bugList),
     // The team user's name follows the board's.
     env.DB.prepare("update users set name = ? where provider = 'sso' and ext_id = ?").bind(`${name} team`, `__team:${id}`),
   ]);
-  return json(boardView({ ...board, name, visibility, logo, color, statuses: list, product_name: productName, product_url: productUrl, lang }));
+  return json(boardView({ ...board, name, visibility, logo, color, statuses: list, bug_statuses: bugList, product_name: productName, product_url: productUrl, lang }));
 }
 
 async function rotateSecret(env: Env, admin: boolean, id: string) {
@@ -263,16 +268,18 @@ async function listPosts(env: Env, url: URL, id: string, user: User | null, admi
   const { see, user: actor } = await access(env, board, user, admin);
   if (!see) return teamOnly();
   const status = url.searchParams.get("status");
+  const type = url.searchParams.get("type");
   const sort = url.searchParams.get("sort") === "new" ? "p.created_at desc" : "p.votes desc, p.created_at desc";
   const sql =
-    `select p.id, p.title, p.status, p.votes, p.comments, p.created_at, u.name as author,` +
+    `select p.id, p.type, p.title, p.status, p.votes, p.comments, p.created_at, u.name as author,` +
     ` exists(select 1 from votes v where v.post_id = p.id and v.user_id = ?) as voted` +
     ` from posts p join users u on u.id = p.user_id where p.board_id = ?` +
     (status ? " and p.status = ?" : "") +
+    (type ? " and p.type = ?" : "") +
     ` order by ${sort} limit 200`;
-  const params = status ? [actor?.id ?? -1, board.id, status] : [actor?.id ?? -1, board.id];
+  const params = [actor?.id ?? -1, board.id, ...(status ? [status] : []), ...(type ? [type] : [])];
   const { results } = await env.DB.prepare(sql).bind(...params).all<Record<string, unknown>>();
-  return json(results.map((r) => ({ id: r.id, title: r.title, status: r.status, votes: r.votes, comments: r.comments, createdAt: r.created_at, author: r.author, voted: Boolean(r.voted) })));
+  return json(results.map((r) => ({ id: r.id, type: r.type, title: r.title, status: r.status, votes: r.votes, comments: r.comments, createdAt: r.created_at, author: r.author, voted: Boolean(r.voted) })));
 }
 
 async function createPost(req: Request, env: Env, id: string, user: User | null, admin: boolean) {
@@ -281,27 +288,56 @@ async function createPost(req: Request, env: Env, id: string, user: User | null,
   const { see, member, user: actor } = await access(env, board, user, admin);
   if (!see) return teamOnly();
   if (!actor || !member) return membersOnly();
-  const body = (await req.json().catch(() => ({}))) as Record<string, unknown>;
+  // A bug with a screenshot comes as a form, everything else as JSON.
+  const multipart = req.headers.get("content-type")?.startsWith("multipart/form-data");
+  const body = (multipart ? Object.fromEntries(await req.formData()) : await req.json().catch(() => ({}))) as Record<string, unknown>;
+  const type = body.type === "bug" ? "bug" : "idea";
   const title = requiredText(body.title, 120);
   if (!title) return json({ error: "invalid_title" }, 400);
   const text = optionalText(body.body, 2000);
   if (text === undefined) return json({ error: "invalid_body" }, 400);
-  const status = JSON.parse(board.statuses)[0].id;
+  const expected = type === "bug" ? optionalText(body.expected, 2000) : null;
+  if (expected === undefined) return json({ error: "invalid_body" }, 400);
+  const place = type === "bug" ? optionalText(body.place, 500) : null;
+  if (place === undefined) return json({ error: "invalid_place" }, 400);
+  // PNG, JPEG, WebP or GIF up to 5 MB, streamed to R2 as it is. No SVG: it could carry a script.
+  const shot = type === "bug" && body.screenshot instanceof File && body.screenshot.size ? body.screenshot : null;
+  if (shot && (shot.size > 5 * 1024 * 1024 || !/^image\/(png|jpeg|webp|gif)$/.test(shot.type))) return json({ error: "invalid_screenshot" }, 400);
+  const screenshot = shot ? `screenshots/${crypto.randomUUID()}` : null;
+  if (shot) await env.BACKUPS.put(screenshot!, shot.stream(), { httpMetadata: { contentType: shot.type } });
+  const status = statusesOf(board, type)[0].id;
   const now = Date.now();
   // Its author votes for it, in the same batch.
   const [row] = await env.DB.batch([
-    env.DB.prepare("insert into posts (board_id, user_id, title, body, status, votes, comments, created_at) values (?, ?, ?, ?, ?, 1, 0, ?) returning id").bind(board.id, actor.id, title, text, status, now),
+    env.DB.prepare("insert into posts (board_id, user_id, type, title, body, expected, place, screenshot, status, votes, comments, created_at) values (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 0, ?) returning id")
+      .bind(board.id, actor.id, type, title, text, expected, place, screenshot, status, now),
     env.DB.prepare("insert into votes (post_id, user_id, created_at) values (last_insert_rowid(), ?, ?)").bind(actor.id, now),
   ]);
-  return json({ id: (row.results[0] as { id: number }).id, title, body: text, status, votes: 1, comments: 0, createdAt: now, author: actor.name, voted: true }, 201);
+  return json({ id: (row.results[0] as { id: number }).id, type, title, body: text, status, votes: 1, comments: 0, createdAt: now, author: actor.name, voted: true }, 201);
+}
+
+export interface PostRow {
+  id: number;
+  type: string;
+  title: string;
+  body: string | null;
+  expected: string | null;
+  place: string | null;
+  screenshot: string | null;
+  status: string;
+  votes: number;
+  comments: number;
+  created_at: number;
+  board_id: string;
+  author: string;
 }
 
 async function getPost(env: Env, id: number, user: User | null, admin: boolean) {
   const post = await env.DB.prepare(
-    "select p.id, p.title, p.body, p.status, p.votes, p.comments, p.created_at, p.board_id, u.name as author from posts p join users u on u.id = p.user_id where p.id = ?",
+    "select p.id, p.type, p.title, p.body, p.expected, p.place, p.screenshot, p.status, p.votes, p.comments, p.created_at, p.board_id, u.name as author from posts p join users u on u.id = p.user_id where p.id = ?",
   )
     .bind(id)
-    .first<{ id: number; title: string; body: string | null; status: string; votes: number; comments: number; created_at: number; board_id: string; author: string }>();
+    .first<PostRow>();
   if (!post) return json({ error: "not_found" }, 404);
   const board = await getBoard(env, post.board_id);
   if (!board) return json({ error: "not_found" }, 404);
@@ -315,15 +351,27 @@ async function getPost(env: Env, id: number, user: User | null, admin: boolean) 
     .bind(`__team:${board.id}`, id)
     .all<{ id: number; body: string; created_at: number; author: string; official: number }>();
   return json({
-    post: { id: post.id, title: post.title, body: post.body, status: post.status, votes: post.votes, comments: post.comments, createdAt: post.created_at, author: post.author, voted },
+    post: { id: post.id, type: post.type, title: post.title, body: post.body, expected: post.expected, place: post.place, screenshot: Boolean(post.screenshot), status: post.status, votes: post.votes, comments: post.comments, createdAt: post.created_at, author: post.author, voted },
     board: boardView(board),
     member,
     comments: comments.map((c) => ({ id: c.id, body: c.body, author: c.author, official: Boolean(c.official), createdAt: c.created_at })),
   });
 }
 
+// A post's screenshot, to whoever can see its board. Served as an image only, never run as a page.
+async function getScreenshot(env: Env, id: number, user: User | null, admin: boolean) {
+  const hit = await withPostBoard(env, id);
+  if (!hit?.post.screenshot) return json({ error: "not_found" }, 404);
+  if (!(await access(env, hit.board, user, admin)).see) return teamOnly();
+  const file = await env.BACKUPS.get(hit.post.screenshot);
+  if (!file) return json({ error: "not_found" }, 404);
+  return new Response(file.body, {
+    headers: { "content-type": file.httpMetadata?.contentType ?? "application/octet-stream", "cache-control": "private, max-age=86400", "x-content-type-options": "nosniff", "content-security-policy": "sandbox; default-src 'none'" },
+  });
+}
+
 async function withPostBoard(env: Env, id: number) {
-  const post = await env.DB.prepare("select id, board_id from posts where id = ?").bind(id).first<{ id: number; board_id: string }>();
+  const post = await env.DB.prepare("select id, board_id, type, screenshot from posts where id = ?").bind(id).first<{ id: number; board_id: string; type: string; screenshot: string | null }>();
   if (!post) return null;
   const board = await getBoard(env, post.board_id);
   return board ? { post, board } : null;
@@ -379,15 +427,16 @@ async function updatePostStatus(req: Request, env: Env, admin: boolean, id: numb
   const hit = await withPostBoard(env, id);
   if (!hit) return json({ error: "not_found" }, 404);
   const { status } = (await req.json().catch(() => ({}))) as { status?: unknown };
-  if (!(JSON.parse(hit.board.statuses) as { id: string }[]).some((s) => s.id === status)) return json({ error: "invalid_status" }, 400);
+  if (!statusesOf(hit.board, hit.post.type).some((s) => s.id === status)) return json({ error: "invalid_status" }, 400);
   await env.DB.prepare("update posts set status = ? where id = ?").bind(status, id).run();
   return json({ ok: true, status });
 }
 
 async function deletePost(env: Env, admin: boolean, id: number) {
   if (!admin) return json({ error: "admin_only" }, 403);
-  const post = await env.DB.prepare("select id from posts where id = ?").bind(id).first();
+  const post = await env.DB.prepare("select id, screenshot from posts where id = ?").bind(id).first<{ id: number; screenshot: string | null }>();
   if (!post) return json({ error: "not_found" }, 404);
+  if (post.screenshot) await env.BACKUPS.delete(post.screenshot);
   await env.DB.batch([
     env.DB.prepare("delete from votes where post_id = ?").bind(id),
     env.DB.prepare("delete from comments where post_id = ?").bind(id),
@@ -402,12 +451,15 @@ async function mergePost(req: Request, env: Env, admin: boolean, id: number) {
   const into = Number(body.into);
   if (!Number.isInteger(into) || into === id) return json({ error: "invalid_target" }, 400);
   const [source, target] = await Promise.all([
-    env.DB.prepare("select id, board_id from posts where id = ?").bind(id).first<{ id: number; board_id: string }>(),
-    env.DB.prepare("select id, board_id from posts where id = ?").bind(into).first<{ id: number; board_id: string }>(),
+    env.DB.prepare("select id, board_id, screenshot from posts where id = ?").bind(id).first<{ id: number; board_id: string; screenshot: string | null }>(),
+    env.DB.prepare("select id, board_id, screenshot from posts where id = ?").bind(into).first<{ id: number; board_id: string; screenshot: string | null }>(),
   ]);
   if (!source || !target) return json({ error: "not_found" }, 404);
   if (source.board_id !== target.board_id) return json({ error: "different_board" }, 400);
+  // The merged post's screenshot moves along when the other one has none; otherwise it goes.
+  if (source.screenshot && target.screenshot) await env.BACKUPS.delete(source.screenshot);
   await env.DB.batch([
+    env.DB.prepare("update posts set screenshot = coalesce(screenshot, ?) where id = ?").bind(source.screenshot, into),
     env.DB.prepare("insert into votes (post_id, user_id, created_at) select ?, user_id, created_at from votes where post_id = ? on conflict (post_id, user_id) do nothing").bind(into, id),
     env.DB.prepare("delete from votes where post_id = ?").bind(id),
     env.DB.prepare("update comments set post_id = ? where post_id = ?").bind(into, id),
@@ -428,6 +480,34 @@ async function deleteComment(env: Env, admin: boolean, id: number) {
   return json({ ok: true });
 }
 
+// ---- developer tokens ---------------------------------------------------------
+
+export const sha256 = async (text: string) => b64url(new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text))));
+
+async function listTokens(env: Env, admin: boolean, id: string) {
+  if (!admin) return json({ error: "admin_only" }, 403);
+  const { results } = await env.DB.prepare("select id, name, created_at as createdAt, last_used_at as lastUsedAt from tokens where board_id = ? order by created_at desc").bind(id).all();
+  return json(results);
+}
+
+// The token is answered this once; only its hash is kept.
+async function createToken(req: Request, env: Env, admin: boolean, id: string) {
+  if (!admin) return json({ error: "admin_only" }, 403);
+  if (!(await getBoard(env, id))) return json({ error: "not_found" }, 404);
+  const name = requiredText(((await req.json().catch(() => ({}))) as { name?: unknown }).name, 60);
+  if (!name) return json({ error: "invalid_name" }, 400);
+  const token = `dzi_${randomToken(32)}`;
+  const now = Date.now();
+  const row = await env.DB.prepare("insert into tokens (board_id, name, hash, created_at) values (?, ?, ?, ?) returning id").bind(id, name, await sha256(token), now).first<{ id: number }>();
+  return json({ id: row!.id, name, createdAt: now, lastUsedAt: null, token }, 201);
+}
+
+async function revokeToken(env: Env, admin: boolean, id: number) {
+  if (!admin) return json({ error: "admin_only" }, 403);
+  await env.DB.prepare("delete from tokens where id = ?").bind(id).run();
+  return json({ ok: true });
+}
+
 // ---- routing ----------------------------------------------------------------
 
 const BOARD_POSTS = /^\/api\/boards\/([a-z0-9-]{2,40})\/posts$/;
@@ -435,6 +515,9 @@ const BOARD_ROTATE = /^\/api\/boards\/([a-z0-9-]{2,40})\/rotate-secret$/;
 const BOARD_SSO = /^\/api\/boards\/([a-z0-9-]{2,40})\/sso$/;
 const BOARD_TEST = /^\/api\/boards\/([a-z0-9-]{2,40})\/test$/;
 const BOARD_SIMILAR = /^\/api\/boards\/([a-z0-9-]{2,40})\/similar$/;
+const BOARD_TOKENS = /^\/api\/boards\/([a-z0-9-]{2,40})\/tokens$/;
+const TOKEN_ONE = /^\/api\/tokens\/(\d+)$/;
+const POST_SCREENSHOT = /^\/api\/posts\/(\d+)\/screenshot$/;
 const BOARD_ONE = /^\/api\/boards\/([a-z0-9-]{2,40})$/;
 const POST_VOTE = /^\/api\/posts\/(\d+)\/vote$/;
 const POST_COMMENTS = /^\/api\/posts\/(\d+)\/comments$/;
@@ -461,6 +544,10 @@ export async function api(req: Request, env: Env, url: URL): Promise<Response> {
   if ((m = path.match(BOARD_SIMILAR)) && method === "GET") return similarPosts(env, url, m[1], user, admin);
   if ((m = path.match(BOARD_POSTS)) && method === "GET") return listPosts(env, url, m[1], user, admin);
   if ((m = path.match(BOARD_POSTS)) && method === "POST") return createPost(req, env, m[1], user, admin);
+  if ((m = path.match(BOARD_TOKENS)) && method === "GET") return listTokens(env, admin, m[1]);
+  if ((m = path.match(BOARD_TOKENS)) && method === "POST") return createToken(req, env, admin, m[1]);
+  if ((m = path.match(TOKEN_ONE)) && method === "DELETE") return revokeToken(env, admin, Number(m[1]));
+  if ((m = path.match(POST_SCREENSHOT)) && method === "GET") return getScreenshot(env, Number(m[1]), user, admin);
   if ((m = path.match(BOARD_ONE)) && method === "GET") return getBoardInfo(env, m[1], user, admin);
   if ((m = path.match(BOARD_ONE)) && method === "PATCH") return updateBoard(req, env, admin, m[1]);
   if ((m = path.match(POST_VOTE)) && method === "POST") return votePost(env, Number(m[1]), user, admin);

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type CSSProperties, type MouseEvent } from "react";
 import { api, ApiError } from "../lib/api";
 import { errorText, format, formatDate, statusLabel, useT } from "../i18n";
-import type { BoardInfo, BoardStatus, PostSummary } from "../lib/types";
+import type { BoardInfo, BoardSummary, PostSummary, PostType } from "../lib/types";
 import type { Navigate } from "../App";
 
 // While one of a board's pages is open, the browser tab shows the board's name and logo.
@@ -20,6 +20,9 @@ export function showBoardInTab(board: { name: string; logo: string | null }) {
   };
 }
 
+// Ideas use the board's statuses, bug reports its bug statuses; both when no type is picked.
+export const statusesFor = (board: BoardSummary, type: PostType | "") => (type === "bug" ? board.bugStatuses : type === "idea" ? board.statuses : [...board.statuses, ...board.bugStatuses]);
+
 // What someone outside a private board sees: nothing of it, only where to open it from.
 export function NoAccess() {
   const { t } = useT();
@@ -31,10 +34,15 @@ export function NoAccess() {
   );
 }
 
-function NewIdea({ boardId, navigate, onAdded }: { boardId: string; navigate: Navigate; onAdded: (p: PostSummary) => void }) {
+// "Suggest an idea" or "Report a bug": the same side panel, a bug asking a few more things.
+function NewPost({ type, boardId, navigate, onAdded }: { type: PostType; boardId: string; navigate: Navigate; onAdded: (p: PostSummary) => void }) {
   const { t } = useT();
+  const bug = type === "bug";
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
+  const [expected, setExpected] = useState("");
+  const [place, setPlace] = useState("");
+  const [screenshot, setScreenshot] = useState<File | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [similar, setSimilar] = useState<{ id: number; title: string; votes: number }[]>([]);
@@ -61,16 +69,16 @@ function NewIdea({ boardId, navigate, onAdded }: { boardId: string; navigate: Na
     <>
     <button
       type="button"
-      className="btn btn--ink suggest-btn"
+      className={bug ? "btn btn--quiet suggest-btn" : "btn btn--ink suggest-btn"}
       onClick={() => {
         panel.current!.showModal();
         titleInput.current!.focus();
       }}
-      data-testid="suggest-idea"
+      data-testid={bug ? "report-bug" : "suggest-idea"}
     >
-      {t.board.suggest}
+      {bug ? t.board.reportBug : t.board.suggest}
     </button>
-    <dialog ref={panel} className="panel" aria-labelledby="new-idea-title" onClick={(e) => e.target === panel.current && panel.current.close()}>
+    <dialog ref={panel} className="panel" aria-labelledby={`new-${type}-title`} onClick={(e) => e.target === panel.current && panel.current.close()}>
     <form
       className="panel-form"
       onSubmit={async (e) => {
@@ -78,10 +86,19 @@ function NewIdea({ boardId, navigate, onAdded }: { boardId: string; navigate: Na
         setBusy(true);
         setError(null);
         try {
-          const post = await api<PostSummary>(`/api/boards/${boardId}/posts`, { method: "POST", body: JSON.stringify({ title, body: body || undefined }) });
+          let sent: string | FormData = JSON.stringify({ type, title, body: body || undefined });
+          if (bug) {
+            sent = new FormData();
+            Object.entries({ type, title, body, expected, place }).forEach(([k, v]) => (sent as FormData).set(k, v));
+            if (screenshot) sent.set("screenshot", screenshot);
+          }
+          const post = await api<PostSummary>(`/api/boards/${boardId}/posts`, { method: "POST", body: sent });
           onAdded(post);
           setTitle("");
           setBody("");
+          setExpected("");
+          setPlace("");
+          setScreenshot(null);
           panel.current!.close();
         } catch (err) {
           setError(errorText(t, err));
@@ -91,15 +108,16 @@ function NewIdea({ boardId, navigate, onAdded }: { boardId: string; navigate: Na
       }}
     >
       <div className="panel-head">
-        <h2 id="new-idea-title">{t.board.shareIdea}</h2>
+        <h2 id={`new-${type}-title`}>{bug ? t.board.reportBug : t.board.shareIdea}</h2>
         <button type="button" className="btn btn--quiet btn--small" onClick={() => panel.current!.close()}>
           {t.board.close}
         </button>
       </div>
+      {bug && <p className="help">{t.board.bugLead}</p>}
       <div className="field-stack">
         <label className="field">
-          <span>{t.board.titlePlaceholder}</span>
-          <input ref={titleInput} type="text" required maxLength={120} value={title} onChange={(e) => setTitle(e.target.value)} aria-invalid={Boolean(error)} aria-describedby="new-idea-help" data-testid="post-title-input" />
+          <span>{bug ? t.board.bugTitle : t.board.titlePlaceholder}</span>
+          <input ref={titleInput} type="text" required maxLength={120} value={title} onChange={(e) => setTitle(e.target.value)} aria-invalid={Boolean(error)} aria-describedby={`new-${type}-help`} data-testid="post-title-input" />
         </label>
         {similar.length > 0 && (
           <div className="similar" data-testid="similar">
@@ -123,16 +141,32 @@ function NewIdea({ boardId, navigate, onAdded }: { boardId: string; navigate: Na
           </div>
         )}
         <label className="field">
-          <span>{t.board.bodyPlaceholder}</span>
-          <textarea maxLength={2000} value={body} onChange={(e) => setBody(e.target.value)} />
+          <span>{bug ? t.board.bugBody : t.board.bodyPlaceholder}</span>
+          <textarea maxLength={2000} value={body} onChange={(e) => setBody(e.target.value)} data-testid="post-body-input" />
         </label>
+        {bug && (
+          <>
+            <label className="field">
+              <span>{t.board.bugExpected}</span>
+              <textarea maxLength={2000} value={expected} onChange={(e) => setExpected(e.target.value)} data-testid="bug-expected" />
+            </label>
+            <label className="field">
+              <span>{t.board.bugPlace}</span>
+              <input type="text" maxLength={500} value={place} onChange={(e) => setPlace(e.target.value)} data-testid="bug-place" />
+            </label>
+            <label className="field">
+              <span>{t.board.bugScreenshot}</span>
+              <input type="file" accept="image/png,image/jpeg,image/webp,image/gif" onChange={(e) => setScreenshot(e.target.files?.[0] ?? null)} data-testid="bug-screenshot" />
+            </label>
+          </>
+        )}
       </div>
       <div className="field-actions">
         <button type="submit" className="btn btn--ink" disabled={busy} data-testid="post-submit">
-          {t.board.submit}
+          {bug ? t.board.bugSubmit : t.board.submit}
         </button>
       </div>
-      <p id="new-idea-help" className={error ? "help help--error" : "help"} role="status">
+      <p id={`new-${type}-help`} className={error ? "help help--error" : "help"} role="status">
         {error ?? ""}
       </p>
     </form>
@@ -141,7 +175,8 @@ function NewIdea({ boardId, navigate, onAdded }: { boardId: string; navigate: Na
   );
 }
 
-function PostRow({ post, boardId, statuses, member, navigate }: { post: PostSummary; boardId: string; statuses: BoardStatus[]; member: boolean; navigate: Navigate }) {
+function PostRow({ post, board, member, navigate }: { post: PostSummary; board: BoardSummary; member: boolean; navigate: Navigate }) {
+  const boardId = board.id;
   const { t, lang } = useT();
   const [voted, setVoted] = useState(post.voted);
   const [votes, setVotes] = useState(post.votes);
@@ -175,16 +210,17 @@ function PostRow({ post, boardId, statuses, member, navigate }: { post: PostSumm
 
   return (
     <li className="post-row stock">
-      <button type="button" className="vote-btn" data-testid="vote-button" disabled={busy} aria-pressed={voted} onClick={vote}>
+      <button type="button" className="vote-btn" data-testid="vote-button" disabled={busy} aria-pressed={voted} aria-label={post.type === "bug" ? t.board.meToo : t.board.vote} onClick={vote}>
+        <span className="vote-btn-label" aria-hidden="true">▲</span>
         <span className="fig">{votes}</span>
-        <span className="vote-btn-label">{voted ? t.board.voted : t.board.vote}</span>
       </button>
       <div className="post-main">
         <a href={`/b/${boardId}/p/${post.id}`} className="post-title" onClick={go}>
           {post.title}
         </a>
         <div className="post-meta">
-          <span className={`badge badge--${post.status}`}>{statusLabel(t, statuses.find((s) => s.id === post.status) ?? { id: post.status, label: "" })}</span>
+          {post.type === "bug" && <span className="badge badge--bug">{t.board.bugBadge}</span>}
+          <span className={`badge badge--${post.status}`}>{statusLabel(t, statusesFor(board, post.type).find((s) => s.id === post.status) ?? { id: post.status, label: "" })}</span>
           <span>{format(t.board.by, { name: post.author, date: formatDate(post.createdAt, lang) })}</span>
           <a href={`/b/${boardId}/p/${post.id}`} className="post-comments" onClick={go}>
             {format(t.board.comments, { n: post.comments })}
@@ -202,6 +238,7 @@ export function Board({ id, admin, navigate }: { id: string; admin: boolean; nav
   const [boardError, setBoardError] = useState<ApiError | null>(null);
   const [posts, setPosts] = useState<PostSummary[] | null>(null);
   const [postsError, setPostsError] = useState<ApiError | null>(null);
+  const [type, setType] = useState<PostType | "">("");
   const [filter, setFilter] = useState("");
   const [sort, setSort] = useState<"top" | "new">("top");
 
@@ -224,8 +261,9 @@ export function Board({ id, admin, navigate }: { id: string; admin: boolean; nav
     setPostsError(null);
     const qs = new URLSearchParams({ sort });
     if (filter) qs.set("status", filter);
+    if (type) qs.set("type", type);
     api<PostSummary[]>(`/api/boards/${id}/posts?${qs}`).then(setPosts, (e) => setPostsError(e instanceof ApiError ? e : new ApiError("server_error", 500, null)));
-  }, [id, board, filter, sort]);
+  }, [id, board, type, filter, sort]);
 
   if (boardError) {
     if (boardError.code === "team_only") return <NoAccess />;
@@ -255,8 +293,15 @@ export function Board({ id, admin, navigate }: { id: string; admin: boolean; nav
         <h1>
           {board.name} {board.visibility === "team" && <span className="badge badge--team">{t.boards.visibilityTeam}</span>}
         </h1>
-        {board.member && <NewIdea boardId={id} navigate={navigate} onAdded={(p) => setPosts((ps) => (ps ? [p, ...ps] : [p]))} />}
+        {board.member && (
+          <div className="new-post-btns">
+            {(["bug", "idea"] as const).map((k) => (
+              <NewPost key={k} type={k} boardId={id} navigate={navigate} onAdded={(p) => setPosts((ps) => (ps ? [p, ...ps] : [p]))} />
+            ))}
+          </div>
+        )}
       </div>
+      <p className="help board-lead">{t.board.lead}</p>
 
       {!board.member && (
         <p className="members-only stock">
@@ -272,6 +317,25 @@ export function Board({ id, admin, navigate }: { id: string; admin: boolean; nav
         </p>
       )}
 
+      <div className="tabs type-tabs" role="tablist">
+        {(["", "idea", "bug"] as const).map((k) => (
+          <button
+            key={k}
+            type="button"
+            className="tab"
+            role="tab"
+            aria-selected={type === k}
+            onClick={() => {
+              setType(k);
+              setFilter("");
+            }}
+            data-testid={`type-${k || "all"}`}
+          >
+            {{ "": t.board.typeAll, idea: t.board.typeIdeas, bug: t.board.typeBugs }[k]}
+          </button>
+        ))}
+      </div>
+
       <div className="toolbar">
         <ul className="filters">
           <li>
@@ -279,7 +343,7 @@ export function Board({ id, admin, navigate }: { id: string; admin: boolean; nav
               {t.board.filterAll}
             </button>
           </li>
-          {board.statuses.map((s) => (
+          {statusesFor(board, type).map((s) => (
             <li key={s.id}>
               <button type="button" className="chip" aria-pressed={filter === s.id} onClick={() => setFilter(s.id)}>
                 {statusLabel(t, s)}
@@ -311,13 +375,13 @@ export function Board({ id, admin, navigate }: { id: string; admin: boolean; nav
       )}
       {!postsError && posts && posts.length === 0 && (
         <div className="empty">
-          <p>{t.board.empty}</p>
+          <p>{type === "bug" ? t.board.emptyBugs : type === "idea" ? t.board.emptyIdeas : t.board.empty}</p>
         </div>
       )}
       {!postsError && posts && posts.length > 0 && (
         <ul className="post-list">
           {posts.map((p) => (
-            <PostRow key={p.id} post={p} boardId={id} statuses={board.statuses} member={board.member} navigate={navigate} />
+            <PostRow key={p.id} post={p} board={board} member={board.member} navigate={navigate} />
           ))}
         </ul>
       )}

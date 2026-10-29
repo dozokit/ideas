@@ -2,6 +2,13 @@
 
 How to update your copy: [dozokit.com/ideas/guide#updating](https://dozokit.com/ideas/guide#updating).
 
+## 1.4.0 – 2026-10-29
+
+- Ideas and bug reports: next to **Suggest an idea**, **Report a bug** asks what went wrong, what happened, what the person expected, where (a page or a link) and an optional screenshot. People vote for a bug with the same ▲ button as an idea, so the bugs that bother most people come first. The board has the tabs All, Ideas and Bugs.
+- Bugs have their own statuses, New, Confirmed, Fixing and Fixed, which you rename, reorder or change like the ideas' (the board's Settings → Statuses).
+- Your developers read a board from their AI assistant, Claude Code, Cursor, ChatGPT or any tool that speaks MCP: the board's Settings → Connect to your product → **For your developers** makes a token and shows the address and header to use, and the one command for Claude Code. Read only; revoke a token at any time.
+- Screenshots are kept in your copy's R2 bucket, next to the backups. Nothing to set up.
+
 ## 1.3.0 – 2026-10-29
 
 - Your boards can open at an address of your own, like ideas.your-product.com, for all of them at once (Settings → Your own address). It walks you through it whether you need to buy a domain, bought one elsewhere or already have one on Cloudflare, then checks the address reaches your copy before saving it. Board links, Copy link, Open as a test person and the developer instructions then use it. The old address keeps working; your product's “Ideas” button must use the new one.
