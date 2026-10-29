@@ -1,5 +1,6 @@
 {
   "name": "dozokit-ideas",
+  "version": "1.1.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -28,29 +29,14 @@
   "license": "AGPL-3.0-only",
   "cloudflare": {
     "bindings": {
-      "ADMIN_EMAIL": {
-        "description": "The Google account email that becomes the admin, who creates boards, sets statuses, merges and deletes."
-      },
-      "GOOGLE_CLIENT_ID": {
-        "description": "From a Google OAuth client (Google Cloud Console → APIs & Services → Credentials). Leave empty to disable Google sign-in."
-      },
-      "GOOGLE_CLIENT_SECRET": {
-        "description": "The secret that goes with the Google OAuth client id above."
-      },
-      "SESSION_SECRET": {
-        "description": "A random string of 32 characters or more, used to sign sign-in sessions. Changing it signs everyone out."
-      },
-      "TURNSTILE_SITE_KEY": {
-        "description": "From Cloudflare Turnstile (add a widget), used to keep bots from posting, voting and commenting."
-      },
-      "TURNSTILE_SECRET": {
-        "description": "The secret that goes with the Turnstile site key above."
+      "PASSWORD": {
+        "description": "The password to sign in to your boards' admin page, 12 characters or more."
       },
       "DB": {
         "description": "Where boards, ideas, votes and comments are kept."
       },
       "BACKUPS": {
-        "description": "Where the nightly backup of your boards is kept. Keep this bucket private."
+        "description": "Where the weekly backup of your boards is kept. Keep this bucket private."
       }
     }
   },

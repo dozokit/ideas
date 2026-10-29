@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState, type MouseEvent, type ReactNode } fro
 import { api } from "./lib/api";
 import type { Me } from "./lib/types";
 import { I18nContext, LANGS, type Lang, applyLang, detectLang, errorText, getMessages, useT } from "./i18n";
-import { SignIn } from "./pages/SignIn";
+import { Login } from "./pages/Login";
 import { Boards } from "./pages/Boards";
 import { Board } from "./pages/Board";
 import { Post } from "./pages/Post";
@@ -50,8 +50,6 @@ function Shell() {
   const [path, navigate] = useRoute();
   const [me, setMe] = useState<Me | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [showSignIn, setShowSignIn] = useState(false);
-  const [authError, setAuthError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -69,20 +67,6 @@ function Shell() {
     return () => window.removeEventListener("dozokit:signed-out", onSignedOut);
   }, [load]);
 
-  useEffect(() => {
-    const url = new URL(location.href);
-    const err = url.searchParams.get("error");
-    if (err) {
-      setAuthError((t.err as Record<string, string>)[err] ?? t.err.invalid);
-      url.searchParams.delete("error");
-      history.replaceState(null, "", url.pathname + url.search + url.hash);
-    }
-  }, [path, t]);
-
-  useEffect(() => {
-    if (me?.user) setShowSignIn(false);
-  }, [me?.user]);
-
   if (error && !me) {
     return (
       <main className="container main">
@@ -94,6 +78,7 @@ function Shell() {
     return <main className="container main" aria-busy="true" />;
   }
   if (me.config.setupNeeded) return <Setup message={me.config.setupNeeded} />;
+  if (path === "/admin" && !me.admin) return <Login onDone={load} />;
 
   const signOut = async () => {
     await api("/api/logout", { method: "POST" });
@@ -108,9 +93,9 @@ function Shell() {
   const postMatch = path.match(POST_PATH);
   const boardMatch = path.match(BOARD_PATH);
   let page: ReactNode;
-  if (path === "/admin") page = <Admin me={me} />;
+  if (path === "/admin") page = <Admin />;
   else if (postMatch) page = <Post boardId={postMatch[1]} postId={Number(postMatch[2])} me={me} navigate={navigate} />;
-  else if (boardMatch) page = <Board id={boardMatch[1]} me={me} navigate={navigate} />;
+  else if (boardMatch) page = <Board id={boardMatch[1]} navigate={navigate} />;
   else page = <Boards navigate={navigate} />;
 
   return (
@@ -125,7 +110,7 @@ function Shell() {
             <a href="/" className="nav-link" aria-current={path === "/" || Boolean(boardMatch) || Boolean(postMatch) ? "page" : undefined} onClick={go("/")}>
               {t.nav.boards}
             </a>
-            {me.user?.admin && (
+            {me.admin && (
               <a href="/admin" className="nav-link" aria-current={path === "/admin" ? "page" : undefined} onClick={go("/admin")}>
                 {t.nav.admin}
               </a>
@@ -139,28 +124,14 @@ function Shell() {
                 </option>
               ))}
             </select>
-            {me.user ? (
+            {(me.user || me.admin) && (
               <button type="button" className="btn btn--quiet btn--small" data-testid="sign-out" onClick={signOut}>
                 {t.auth.signOut}
-              </button>
-            ) : (
-              <button type="button" className="btn btn--quiet btn--small" data-testid="sign-in" onClick={() => setShowSignIn((v) => !v)}>
-                {t.auth.signIn}
               </button>
             )}
           </div>
         </div>
       </header>
-
-      {authError && (
-        <p className="container auth-banner help help--error">{authError}</p>
-      )}
-
-      {showSignIn && !me.user && (
-        <div className="container signin-panel">
-          <SignIn config={me.config} returnTo={path} compact />
-        </div>
-      )}
 
       <main className="container main">{page}</main>
     </div>

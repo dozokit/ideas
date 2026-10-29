@@ -1,18 +1,5 @@
 # Copy this file to .dev.vars for local development (it is git-ignored).
 
-# Who becomes the admin. Sign in locally with the dev login stub using this email.
-ADMIN_EMAIL=owner@example.com
-
-# 32+ random characters, used to sign session cookies. A dev-only value is fine here.
-SESSION_SECRET=dev-only-secret-change-me-32-chars-minimum
-
-# Turns on GET /auth/dev on localhost, so you can sign in without Google during development.
-DEV_LOGIN=1
-
-# Leave empty to disable Google sign-in locally and use the dev login stub instead.
-GOOGLE_CLIENT_ID=
-GOOGLE_CLIENT_SECRET=
-
-# Cloudflare's published Turnstile test keys: the site key always passes, this secret always passes too.
-TURNSTILE_SITE_KEY=1x00000000000000000000AA
-TURNSTILE_SECRET=1x0000000000000000000000000000000AA
+# The admin page's password, 12 characters or more. It also signs visitors' sessions, so nothing
+# opens without it, not even locally.
+PASSWORD=

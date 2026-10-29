@@ -2,15 +2,15 @@ import type { Env } from "./index";
 
 export interface User {
   id: number;
-  provider: "google" | "sso";
+  provider: "sso";
   ext_id: string;
   email: string;
   name: string;
 }
 
-// Google ext_id is Google's own "sub". SSO ext_id is "<board_id>:<sub>" so a company tool can
-// never collide with or impersonate a Google user, even if it uses the same email address.
-export async function upsertUser(env: Env, provider: "google" | "sso", extId: string, email: string, name: string): Promise<User> {
+// Everyone comes in through a board's signed link (provider "sso"; older rows may say "google").
+// ext_id is "<board_id>:<sub>", so one board's tool can never impersonate another board's people.
+export async function upsertUser(env: Env, provider: "sso", extId: string, email: string, name: string): Promise<User> {
   const row = await env.DB.prepare(
     `insert into users (provider, ext_id, email, name, created_at) values (?, ?, ?, ?, ?)
      on conflict (provider, ext_id) do update set email = excluded.email, name = excluded.name

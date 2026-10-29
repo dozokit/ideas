@@ -1,5 +1,5 @@
 import { api, me } from "./api";
-import { googleLogin, googleCallback, devLogin, logout, setupNeeded } from "./auth";
+import { login, logout, setupNeeded } from "./admin";
 import { sso } from "./sso";
 import { backup } from "./backup";
 
@@ -7,13 +7,7 @@ export interface Env {
   DB: D1Database;
   ASSETS: Fetcher;
   BACKUPS: R2Bucket;
-  ADMIN_EMAIL?: string;
-  GOOGLE_CLIENT_ID?: string;
-  GOOGLE_CLIENT_SECRET?: string;
-  SESSION_SECRET?: string;
-  TURNSTILE_SITE_KEY?: string;
-  TURNSTILE_SECRET?: string;
-  DEV_LOGIN?: string;
+  PASSWORD?: string;
   LOGIN_LIMIT?: RateLimit;
 }
 
@@ -48,9 +42,10 @@ export default {
       if (req.method !== "GET" && origin && origin !== url.origin) {
         return Response.json({ error: "cross_origin" }, { status: 403 });
       }
+      if (path === "/api/login" && req.method === "POST") return login(req, env);
       if (path === "/api/logout" && req.method === "POST") return logout(req);
       if (path === "/api/me") return me(req, env);
-      const setup = setupNeeded(req, env);
+      const setup = setupNeeded(env);
       if (setup) return Response.json({ error: "setup_needed" }, { status: 503 });
       try {
         return await api(req, env, url);
@@ -60,9 +55,6 @@ export default {
       }
     }
 
-    if (path === "/auth/google") return googleLogin(req, env, url);
-    if (path === "/auth/google/callback") return googleCallback(req, env, url);
-    if (path === "/auth/dev") return devLogin(req, env, url);
     if (path === "/sso") return sso(req, env, url);
 
     if (path === "/robots.txt") return new Response("User-agent: *\nDisallow: /\n", { headers: { "content-type": "text/plain" } });

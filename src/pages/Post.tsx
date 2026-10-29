@@ -1,19 +1,16 @@
-import { useEffect, useRef, useState, type FormEvent, type MouseEvent } from "react";
+import { useEffect, useState, type FormEvent, type MouseEvent } from "react";
 import { api, ApiError } from "../lib/api";
-import { errorText, format, formatDate, useT } from "../i18n";
-import type { Comment, Me, PostPage, PostSummary, Status } from "../lib/types";
+import { errorText, format, formatDate, statusLabel, useT } from "../i18n";
+import type { Comment, Me, PostPage, PostSummary } from "../lib/types";
 import type { Navigate } from "../App";
-import { SignIn } from "./SignIn";
-import { Turnstile, type TurnstileHandle } from "../lib/turnstile";
-
-const STATUSES: Status[] = ["open", "planned", "in_progress", "done"];
+import { NoAccess } from "./Board";
 
 export function Post({ boardId, postId, me, navigate }: { boardId: string; postId: number; me: Me; navigate: Navigate }) {
   const { t, lang } = useT();
   const [page, setPage] = useState<PostPage | null>(null);
   const [pageError, setPageError] = useState<ApiError | null>(null);
 
-  const [status, setStatus] = useState<Status>("open");
+  const [status, setStatus] = useState("");
   const [voted, setVoted] = useState(false);
   const [votes, setVotes] = useState(0);
   const [comments, setComments] = useState<Comment[]>([]);
@@ -32,7 +29,6 @@ export function Post({ boardId, postId, me, navigate }: { boardId: string; postI
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleteBusy, setDeleteBusy] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
-  const turnstileRef = useRef<TurnstileHandle>(null);
 
   useEffect(() => {
     setPage(null);
@@ -49,12 +45,12 @@ export function Post({ boardId, postId, me, navigate }: { boardId: string; postI
   }, [page]);
 
   useEffect(() => {
-    if (!page || !me.user?.admin) return;
+    if (!page || !me.admin) return;
     api<PostSummary[]>(`/api/boards/${boardId}/posts?sort=new`).then(
       (ps) => setOthers(ps.filter((p) => p.id !== postId)),
       () => setOthers([]),
     );
-  }, [page, me.user?.admin, boardId, postId]);
+  }, [page, me.admin, boardId, postId]);
 
   const back = (e: MouseEvent) => {
     e.preventDefault();
@@ -62,9 +58,7 @@ export function Post({ boardId, postId, me, navigate }: { boardId: string; postI
   };
 
   if (pageError) {
-    if (pageError.code === "team_only") {
-      return <SignIn config={me.config} returnTo={`/b/${boardId}/p/${postId}`} heading={String(pageError.data?.name ?? "")} message={t.auth.teamOnly} />;
-    }
+    if (pageError.code === "team_only") return <NoAccess />;
     return (
       <div className="failed">
         <p>{pageError.code === "not_found" ? t.post.gone : errorText(t, pageError)}</p>
@@ -85,24 +79,25 @@ export function Post({ boardId, postId, me, navigate }: { boardId: string; postI
     );
   }
 
+  const statuses = page.board.statuses;
+
+  // A second press takes the vote back.
   async function vote() {
-    if (!me.user) {
-      setVoteMsg(t.auth.signInToVote);
+    if (!page!.member) {
+      setVoteMsg(t.post.membersOnly);
       return;
     }
     setVoteBusy(true);
     setVoteMsg(null);
     try {
-      const token = (await turnstileRef.current?.getToken()) ?? null;
-      await api(`/api/posts/${postId}/vote`, { method: "POST", body: JSON.stringify({ turnstile: token }) });
-      setVoted(true);
-      setVotes((v) => v + 1);
+      await api(`/api/posts/${postId}/vote`, { method: voted ? "DELETE" : "POST" });
+      setVotes((v) => (voted ? v - 1 : v + 1));
+      setVoted(!voted);
     } catch (err) {
       setVoteMsg(errorText(t, err));
       if (err instanceof ApiError && err.code === "already_voted") setVoted(true);
     } finally {
       setVoteBusy(false);
-      turnstileRef.current?.reset();
     }
   }
 
@@ -111,15 +106,13 @@ export function Post({ boardId, postId, me, navigate }: { boardId: string; postI
     setCommentBusy(true);
     setCommentError(null);
     try {
-      const token = (await turnstileRef.current?.getToken()) ?? null;
-      const c = await api<Comment>(`/api/posts/${postId}/comments`, { method: "POST", body: JSON.stringify({ body: commentBody, turnstile: token }) });
+      const c = await api<Comment>(`/api/posts/${postId}/comments`, { method: "POST", body: JSON.stringify({ body: commentBody }) });
       setComments((cs) => [...cs, c]);
       setCommentBody("");
     } catch (err) {
       setCommentError(errorText(t, err));
     } finally {
       setCommentBusy(false);
-      turnstileRef.current?.reset();
     }
   }
 
@@ -128,7 +121,7 @@ export function Post({ boardId, postId, me, navigate }: { boardId: string; postI
     setComments((cs) => cs.filter((c) => c.id !== id));
   }
 
-  async function changeStatus(next: Status) {
+  async function changeStatus(next: string) {
     const prev = status;
     setStatus(next);
     setStatusBusy(true);
@@ -177,30 +170,28 @@ export function Post({ boardId, postId, me, navigate }: { boardId: string; postI
 
       <div className="post-head">
         <div className="post-head-top">
-          <button type="button" className="vote-btn" data-testid="vote-button" disabled={voted || voteBusy} aria-pressed={voted} onClick={vote}>
+          <button type="button" className="vote-btn" data-testid="vote-button" disabled={voteBusy} aria-pressed={voted} onClick={vote}>
             <span className="fig">{votes}</span>
             <span className="vote-btn-label">{voted ? t.board.voted : t.board.vote}</span>
           </button>
           <h1>{page.post.title}</h1>
-          {status !== "open" && <span className={`badge badge--${status}`}>{t.status[status]}</span>}
+          {status !== statuses[0].id && <span className={`badge badge--${status}`}>{statusLabel(t, statuses.find((s) => s.id === status) ?? { id: status, label: "" })}</span>}
         </div>
         {voteMsg && <p className="help help--error">{voteMsg}</p>}
         <p className="help">{format(t.board.by, { name: page.post.author, date: formatDate(page.post.createdAt, lang) })}</p>
         {page.post.body && <p className="post-body">{page.post.body}</p>}
       </div>
 
-      {me.config.turnstileSiteKey && <Turnstile ref={turnstileRef} siteKey={me.config.turnstileSiteKey} />}
-
-      {me.user?.admin && (
+      {me.admin && (
         <div className="page-section">
           <h2>{t.admin.title}</h2>
           <div className="field-row">
             <label className="field">
               <span>{t.post.adminStatus}</span>
-              <select data-testid="status-select" value={status} disabled={statusBusy} onChange={(e) => changeStatus(e.target.value as Status)}>
-                {STATUSES.map((s) => (
-                  <option key={s} value={s}>
-                    {t.status[s]}
+              <select data-testid="status-select" value={status} disabled={statusBusy} onChange={(e) => changeStatus(e.target.value)}>
+                {statuses.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {statusLabel(t, s)}
                   </option>
                 ))}
               </select>
@@ -257,7 +248,7 @@ export function Post({ boardId, postId, me, navigate }: { boardId: string; postI
                 <div className="comment-meta">
                   <span className="comment-author">{c.author}</span>
                   <span>{formatDate(c.createdAt, lang)}</span>
-                  {me.user?.admin && (
+                  {me.admin && (
                     <button type="button" className="link-btn" data-testid="delete-comment" onClick={() => deleteComment(c.id)}>
                       {t.post.deleteComment}
                     </button>
@@ -269,7 +260,7 @@ export function Post({ boardId, postId, me, navigate }: { boardId: string; postI
           </ul>
         )}
 
-        {me.user ? (
+        {page.member ? (
           <form onSubmit={submitComment}>
             <label className="field">
               <span>{t.post.commentPlaceholder}</span>
@@ -283,7 +274,7 @@ export function Post({ boardId, postId, me, navigate }: { boardId: string; postI
             <p className={commentError ? "help help--error" : "help"}>{commentError ?? ""}</p>
           </form>
         ) : (
-          <SignIn config={me.config} returnTo={`/b/${boardId}/p/${postId}`} message={t.auth.signInToComment} compact />
+          <p className="members-only stock">{t.post.membersOnly}</p>
         )}
       </div>
     </div>

@@ -1,32 +1,33 @@
 export type Visibility = "public" | "team";
-export type Status = "open" | "planned" | "in_progress" | "done";
+export interface BoardStatus {
+  id: string;
+  label: string;
+}
 
 export interface Me {
-  user: { id: number; name: string; email?: string; admin: boolean } | null;
-  config: { googleReady: boolean; devLogin: boolean; turnstileSiteKey: string; setupNeeded: string | null };
-  version: string;
-  latest: string | null;
+  user: { id: number; name: string; email?: string } | null;
+  admin: boolean;
+  config: { setupNeeded: string | null };
 }
 
 export interface BoardSummary {
   id: string;
   name: string;
   visibility: Visibility;
-  allowedDomains: string;
+  statuses: BoardStatus[];
+  logo: string | null;
+  color: string | null;
   createdAt: number;
 }
 
-export interface BoardInfo {
-  id: string;
-  name: string;
-  visibility: Visibility;
-  canSee: true;
+export interface BoardInfo extends BoardSummary {
+  member: boolean;
 }
 
 export interface PostSummary {
   id: number;
   title: string;
-  status: Status;
+  status: string;
   votes: number;
   comments: number;
   createdAt: number;
@@ -38,7 +39,7 @@ export interface PostDetail {
   id: number;
   title: string;
   body: string | null;
-  status: Status;
+  status: string;
   votes: number;
   comments: number;
   createdAt: number;
@@ -55,6 +56,7 @@ export interface Comment {
 
 export interface PostPage {
   post: PostDetail;
-  board: { id: string; name: string; visibility: Visibility };
+  board: BoardSummary;
+  member: boolean;
   comments: Comment[];
 }

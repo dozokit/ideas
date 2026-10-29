@@ -1,6 +1,4 @@
-// Small helpers with no state and no dependency on Env, shared by several worker files.
-
-export const isLocalHost = (req: Request) => /^(localhost|127\.0\.0\.1|\[::1\])$/.test(new URL(req.url).hostname);
+// Small helpers with no state and no dependency on Env.
 
 // A redirect target is safe when it stays on this origin: either a path starting with a single
 // "/" (not "//" or "/\", both of which browsers can treat as protocol-relative), or an absolute
