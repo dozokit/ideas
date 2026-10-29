@@ -1,6 +1,6 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { api } from "../lib/api";
-import { errorText, format, useT } from "../i18n";
+import { LANGS, errorText, format, useT, type Lang } from "../i18n";
 import type { BoardStatus, BoardSummary, Visibility } from "../lib/types";
 import { TurnOnUpdates } from "./TurnOnUpdates";
 import { ChangePassword } from "./Password";
@@ -82,6 +82,7 @@ export function BoardSettings({ id, navigate }: { id: string; navigate: Navigate
   const [color, setColor] = useState<string | null>(null);
   const [productName, setProductName] = useState("");
   const [productUrl, setProductUrl] = useState("");
+  const [boardLang, setBoardLang] = useState<Lang | null>(null);
   const [statuses, setStatuses] = useState<BoardStatus[]>([]);
   const [saveBusy, setSaveBusy] = useState(false);
   const [saveMsg, setSaveMsg] = useState<string | null>(null);
@@ -100,6 +101,7 @@ export function BoardSettings({ id, navigate }: { id: string; navigate: Navigate
     setColor(b.color);
     setProductName(b.productName ?? "");
     setProductUrl(b.productUrl ?? "");
+    setBoardLang(b.lang);
     setStatuses(b.statuses);
   };
 
@@ -296,7 +298,7 @@ export function BoardSettings({ id, navigate }: { id: string; navigate: Navigate
       </div>
 
       {tab === "look" && (
-        <form onSubmit={(e) => save(e, { name, visibility, logo, color, productName, productUrl })}>
+        <form onSubmit={(e) => save(e, { name, visibility, logo, color, productName, productUrl, lang: boardLang })}>
           <div className="field-stack">
             <label className="field">
               <span>{t.admin.fieldName}</span>
@@ -310,6 +312,17 @@ export function BoardSettings({ id, navigate }: { id: string; navigate: Navigate
               </select>
             </label>
             <p className="help">{t.admin.visibilityHelp}</p>
+            <label className="field">
+              <span>{t.admin.fieldLang}</span>
+              <select value={boardLang ?? ""} onChange={(e) => setBoardLang((e.target.value || null) as Lang | null)} data-testid="board-lang">
+                <option value="">{t.admin.langBrowser}</option>
+                {LANGS.map((l) => (
+                  <option key={l.code} value={l.code}>
+                    {l.label}
+                  </option>
+                ))}
+              </select>
+            </label>
             <LogoField logo={logo} onChange={setLogo} />
             <label className="field">
               <span>{t.admin.fieldColor}</span>

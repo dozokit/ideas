@@ -99,48 +99,45 @@ function Shell() {
   else if (adminBoardMatch) page = <BoardSettings key={adminBoardMatch[1]} id={adminBoardMatch[1]} navigate={navigate} />;
   else if (path === "/admin/settings") page = <Settings />;
   else if (postMatch) page = <Post boardId={postMatch[1]} postId={Number(postMatch[2])} me={me} navigate={navigate} />;
-  else if (boardMatch) page = <Board id={boardMatch[1]} navigate={navigate} />;
+  else if (boardMatch) page = <Board id={boardMatch[1]} admin={me.admin} navigate={navigate} />;
   else page = <Boards navigate={navigate} />;
 
   return (
     <div className="shell">
-      <header className="topbar">
-        <div className="topbar-inner container">
-          <a href="/" className="wordmark" onClick={go("/")}>
-            <img src="/icon.svg" alt="" width="20" height="20" />
-            {t.app.wordmark}
-          </a>
-          <nav className="nav" aria-label="Sections">
-            <a href="/" className="nav-link" aria-current={path === "/" || Boolean(boardMatch) || Boolean(postMatch) ? "page" : undefined} onClick={go("/")}>
-              {t.nav.boards}
+      {/* Visitors see only the board: no menu, no language picker (a board can set its own language). */}
+      {me.admin && (
+        <header className="topbar">
+          <div className="topbar-inner container">
+            <a href="/" className="wordmark" onClick={go("/")}>
+              <img src="/icon.svg" alt="" width="20" height="20" />
+              {t.app.wordmark}
             </a>
-            {me.admin && (
+            <nav className="nav" aria-label="Sections">
+              <a href="/" className="nav-link" aria-current={path === "/" || Boolean(boardMatch) || Boolean(postMatch) ? "page" : undefined} onClick={go("/")}>
+                {t.nav.boards}
+              </a>
               <a href="/admin" className="nav-link" aria-current={path === "/admin" || adminBoardMatch ? "page" : undefined} onClick={go("/admin")}>
                 {t.nav.admin}
               </a>
-            )}
-            {me.admin && (
               <a href="/admin/settings" className="nav-link" aria-current={path === "/admin/settings" ? "page" : undefined} onClick={go("/admin/settings")}>
                 {t.nav.settings}
               </a>
-            )}
-          </nav>
-          <div className="topbar-end">
-            <select data-testid="lang-select" aria-label={t.lang.label} value={lang} onChange={(e) => setLang(e.target.value as Lang)}>
-              {LANGS.map((l) => (
-                <option key={l.code} value={l.code}>
-                  {l.label}
-                </option>
-              ))}
-            </select>
-            {(me.user || me.admin) && (
+            </nav>
+            <div className="topbar-end">
+              <select data-testid="lang-select" aria-label={t.lang.label} value={lang} onChange={(e) => setLang(e.target.value as Lang)}>
+                {LANGS.map((l) => (
+                  <option key={l.code} value={l.code}>
+                    {l.label}
+                  </option>
+                ))}
+              </select>
               <button type="button" className="btn btn--quiet btn--small" data-testid="sign-out" onClick={signOut}>
                 {t.auth.signOut}
               </button>
-            )}
+            </div>
           </div>
-        </div>
-      </header>
+        </header>
+      )}
 
       <main className="container main">{page}</main>
     </div>

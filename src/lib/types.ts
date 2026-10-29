@@ -1,3 +1,5 @@
+import type { Lang } from "../i18n";
+
 export type Visibility = "public" | "team";
 export interface BoardStatus {
   id: string;
@@ -19,6 +21,7 @@ export interface BoardSummary {
   color: string | null;
   productName: string | null;
   productUrl: string | null;
+  lang: Lang | null;
   createdAt: number;
 }
 

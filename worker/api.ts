@@ -6,6 +6,8 @@ import { b64url, hmacSign, randomToken } from "./crypto";
 import type { User } from "./users";
 
 const json = (body: unknown, status = 200) => Response.json(body, { status, headers: { "cache-control": "no-store" } });
+// The app's languages (src/i18n.ts LANGS): a board set to one of them shows only that one.
+const LANGS = ["en", "fr", "es", "pt-BR"];
 
 const BUILT_IN_STATUSES = ["open", "planned", "in_progress", "done"];
 
@@ -47,12 +49,12 @@ function cleanStatuses(raw: unknown): { id: string; label: string }[] | null {
 
 const cleanVisibility = (raw: unknown) => (raw === "public" || raw === "team" ? raw : null);
 
-const boardView = (b: Board) => ({ id: b.id, name: b.name, visibility: b.visibility, statuses: JSON.parse(b.statuses), logo: b.logo, color: b.color, productName: b.product_name, productUrl: b.product_url, createdAt: b.created_at });
+const boardView = (b: Board) => ({ id: b.id, name: b.name, visibility: b.visibility, statuses: JSON.parse(b.statuses), logo: b.logo, color: b.color, productName: b.product_name, productUrl: b.product_url, lang: b.lang, createdAt: b.created_at });
 const teamOnly = () => json({ error: "team_only" }, 403);
 const membersOnly = () => json({ error: "members_only" }, 403);
 
-// This copy's release. Raise it with each tag on github.com/dozokit/ideas (v1.2.2) and its CHANGELOG.md entry.
-const VERSION = "1.2.2";
+// This copy's release. Raise it with each tag on github.com/dozokit/ideas (v1.2.3) and its CHANGELOG.md entry.
+const VERSION = "1.2.3";
 
 // This copy's random id and whether it checks for new versions, made on first use.
 async function install(env: Env) {
@@ -150,15 +152,17 @@ async function updateBoard(req: Request, env: Env, admin: boolean, id: string) {
   // Shown as a link to visitors, so https only.
   const productUrl = body.productUrl === undefined ? board.product_url : optionalText(body.productUrl, 500);
   if (productUrl === undefined || (productUrl && !/^https:\/\/[^\s/]+\S*$/i.test(productUrl))) return json({ error: "invalid_product_url" }, 400);
+  const lang = body.lang === undefined ? board.lang : body.lang === null || body.lang === "" ? null : typeof body.lang === "string" && LANGS.includes(body.lang) ? body.lang : undefined;
+  if (lang === undefined) return json({ error: "invalid_lang" }, 400);
   const list = JSON.stringify(statuses);
   await env.DB.batch([
-    env.DB.prepare("update boards set name = ?, visibility = ?, logo = ?, color = ?, statuses = ?, product_name = ?, product_url = ? where id = ?").bind(name, visibility, logo, color, list, productName, productUrl, id),
+    env.DB.prepare("update boards set name = ?, visibility = ?, logo = ?, color = ?, statuses = ?, product_name = ?, product_url = ?, lang = ? where id = ?").bind(name, visibility, logo, color, list, productName, productUrl, lang, id),
     // The ideas of a removed status move to the first one.
     env.DB.prepare("update posts set status = ? where board_id = ? and status not in (select json_extract(value, '$.id') from json_each(?))").bind(statuses[0].id, id, list),
     // The team user's name follows the board's.
     env.DB.prepare("update users set name = ? where provider = 'sso' and ext_id = ?").bind(`${name} team`, `__team:${id}`),
   ]);
-  return json(boardView({ ...board, name, visibility, logo, color, statuses: list, product_name: productName, product_url: productUrl }));
+  return json(boardView({ ...board, name, visibility, logo, color, statuses: list, product_name: productName, product_url: productUrl, lang }));
 }
 
 async function rotateSecret(env: Env, admin: boolean, id: string) {

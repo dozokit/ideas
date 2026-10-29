@@ -10,6 +10,7 @@ export interface Board {
   logo: string | null;
   color: string | null;
   product_name: string | null;
+  lang: string | null;
   product_url: string | null;
   created_at: number;
 }

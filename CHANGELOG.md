@@ -2,6 +2,12 @@
 
 How to update your copy: [dozokit.com/ideas/guide#updating](https://dozokit.com/ideas/guide#updating).
 
+## 1.2.3 – 2026-10-29
+
+- People coming to a board see only the board: no Dozokit Ideas menu, no boards list link, no sign-out. The admin keeps the full menu.
+- Each board can be set to one language (Admin → the board → Look). Its visitors then see it in that language, with no language picker; left empty, each visitor gets their browser's language as before.
+- The number of comments on each idea opens the idea, where people comment.
+
 ## 1.2.2 – 2026-10-29
 
 - The pages themselves are now served straight by Cloudflare too, so opening a board only counts its 3 data calls toward the free plan's 100,000 requests a day (it was 8 before 1.2.1). The app's files are kept in the browser for a year, since each build gives them new names.

@@ -170,7 +170,9 @@ function PostRow({ post, boardId, statuses, member, navigate }: { post: PostSumm
         <div className="post-meta">
           <span className={`badge badge--${post.status}`}>{statusLabel(t, statuses.find((s) => s.id === post.status) ?? { id: post.status, label: "" })}</span>
           <span>{format(t.board.by, { name: post.author, date: formatDate(post.createdAt, lang) })}</span>
-          <span>{format(t.board.comments, { n: post.comments })}</span>
+          <a href={`/b/${boardId}/p/${post.id}`} className="post-comments" onClick={go}>
+            {format(t.board.comments, { n: post.comments })}
+          </a>
         </div>
         {msg && <p className="help help--error">{msg}</p>}
       </div>
@@ -178,8 +180,8 @@ function PostRow({ post, boardId, statuses, member, navigate }: { post: PostSumm
   );
 }
 
-export function Board({ id, navigate }: { id: string; navigate: Navigate }) {
-  const { t } = useT();
+export function Board({ id, admin, navigate }: { id: string; admin: boolean; navigate: Navigate }) {
+  const { t, setLang } = useT();
   const [board, setBoard] = useState<BoardInfo | null>(null);
   const [boardError, setBoardError] = useState<ApiError | null>(null);
   const [posts, setPosts] = useState<PostSummary[] | null>(null);
@@ -192,6 +194,11 @@ export function Board({ id, navigate }: { id: string; navigate: Navigate }) {
     setBoardError(null);
     api<BoardInfo>(`/api/boards/${id}`).then(setBoard, (e) => setBoardError(e instanceof ApiError ? e : new ApiError("server_error", 500, null)));
   }, [id]);
+
+  // Visitors see a board set to one language in that language; the admin keeps their own.
+  useEffect(() => {
+    if (!admin && board?.lang) setLang(board.lang);
+  }, [admin, board, setLang]);
 
   useEffect(() => {
     if (!board) return;

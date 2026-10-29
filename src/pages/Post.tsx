@@ -6,7 +6,7 @@ import type { Navigate } from "../App";
 import { NoAccess } from "./Board";
 
 export function Post({ boardId, postId, me, navigate }: { boardId: string; postId: number; me: Me; navigate: Navigate }) {
-  const { t, lang } = useT();
+  const { t, lang, setLang } = useT();
   const [page, setPage] = useState<PostPage | null>(null);
   const [pageError, setPageError] = useState<ApiError | null>(null);
 
@@ -38,11 +38,12 @@ export function Post({ boardId, postId, me, navigate }: { boardId: string; postI
 
   useEffect(() => {
     if (!page) return;
+    if (!me.admin && page.board.lang) setLang(page.board.lang);
     setStatus(page.post.status);
     setVoted(page.post.voted);
     setVotes(page.post.votes);
     setComments(page.comments);
-  }, [page]);
+  }, [page, me.admin, setLang]);
 
   useEffect(() => {
     if (!page || !me.admin) return;

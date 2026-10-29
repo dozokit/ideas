@@ -38,6 +38,7 @@
 .post-title { font-size: var(--text-md); font-weight: 500; text-decoration: none; color: inherit; }
 .post-title:hover { text-decoration: underline; text-decoration-color: var(--color-accent-2); }
 .post-meta { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-sm); color: var(--color-muted); font-size: var(--text-xs); }
+.post-comments { color: inherit; text-decoration: underline; text-decoration-color: var(--color-accent-2); text-underline-offset: 2px; }
 
 /* Vote button: a stacked count-over-label pill, same action everywhere it appears. */
 .vote-btn {

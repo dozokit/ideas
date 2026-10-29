@@ -78,6 +78,8 @@ export interface Messages {
     logoHelp: string;
     logoRemove: string;
     fieldColor: string;
+    fieldLang: string;
+    langBrowser: string;
     statusesTitle: string;
     statusName: string;
     statusAdd: string;
@@ -254,6 +256,8 @@ const en: Messages = {
     logoHelp: "PNG, JPEG, SVG or WebP, up to 200 KB.",
     logoRemove: "Remove logo",
     fieldColor: "Colour",
+    fieldLang: "Language",
+    langBrowser: "Each visitor's browser language",
     statusesTitle: "Statuses",
     statusName: "Status name",
     statusAdd: "Add a status",
@@ -432,6 +436,8 @@ const fr: Messages = {
     logoHelp: "PNG, JPEG, SVG ou WebP, jusqu'à 200 Ko.",
     logoRemove: "Retirer le logo",
     fieldColor: "Couleur",
+    fieldLang: "Langue",
+    langBrowser: "La langue du navigateur de chaque visiteur",
     statusesTitle: "Statuts",
     statusName: "Nom du statut",
     statusAdd: "Ajouter un statut",
@@ -610,6 +616,8 @@ const es: Messages = {
     logoHelp: "PNG, JPEG, SVG o WebP, hasta 200 KB.",
     logoRemove: "Quitar el logo",
     fieldColor: "Color",
+    fieldLang: "Idioma",
+    langBrowser: "El idioma del navegador de cada visitante",
     statusesTitle: "Estados",
     statusName: "Nombre del estado",
     statusAdd: "Añadir un estado",
@@ -788,6 +796,8 @@ const ptBR: Messages = {
     logoHelp: "PNG, JPEG, SVG ou WebP, até 200 KB.",
     logoRemove: "Remover o logo",
     fieldColor: "Cor",
+    fieldLang: "Idioma",
+    langBrowser: "O idioma do navegador de cada visitante",
     statusesTitle: "Status",
     statusName: "Nome do status",
     statusAdd: "Adicionar um status",
