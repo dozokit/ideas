@@ -15,9 +15,10 @@ You need a free Cloudflare account and a GitHub (or GitLab) account.
 That's it.
 
 - **Public or private**: anyone with a public board's link can read it; a private board shows nothing to anyone but you and the people your product sent there. Either way, only those people vote, suggest and comment.
-- **Your admin page** has three screens: **Admin** lists your boards (link, number of ideas, Copy link, Open, Settings); a board's **Settings** has the tabs **Look** (name, visibility, logo, colour, your product's name and link), **Statuses** and **Connect to your product**; **Settings** in the top bar holds updates, the version and the password.
+- **Your admin page** has three screens: **Admin** lists your boards (link, number of ideas, Copy link, Open, Settings); a board's **Settings** has the tabs **Look** (name, visibility, logo, colour, your product's name and link), **Statuses** and **Connect to your product**; **Settings** in the top bar holds your own address, updates, the version and the password.
 - **You take part too**: signed in to the admin page, you suggest, vote and comment on any board as "<board name> team". Your comments show as **Official answer**.
 - **Your product's name**: set it in Look, and visitors who can read the board but not vote yet are told to open Ideas from it (linked, if you give its address).
+- **Your own address**: Settings → Your own address puts all your boards on an address of your own, like `ideas.your-product.com/b/<board>`. Answer whether you have a domain, follow the steps (in Cloudflare, add it to the `dozokit-ideas` Worker's **Domains**), then **Check and connect**: it's saved only once it reaches your copy. Board links and the developer instructions then use it. The old address keeps working, but people sign in on each address separately, so point your product's Ideas button at the new one.
 - **Change the password**: Settings → Change password. Forgot it? In Cloudflare, open the Worker, then Settings → Variables and Secrets, and edit `PASSWORD`: that password works again.
 
 ## Send people in from your product

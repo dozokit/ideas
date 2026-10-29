@@ -3,12 +3,13 @@
   "name": "dozokit-ideas",
   "main": "worker/index.ts",
   "compatibility_date": "2026-10-01",
-  // The update check (dozokit.com) is the only call to the public internet.
+  // The update check (dozokit.com) and the check of the owner's own address are the only calls to the public internet.
   "compatibility_flags": ["global_fetch_strictly_public"],
   // Only data and sign-in go to the Worker. Pages and the built files are served straight by
   // Cloudflare (headers in public/_headers), so they don't count toward the free plan's 100,000
-  // requests a day; any other address gets the app, whose router shows the page.
-  "assets": { "binding": "ASSETS", "not_found_handling": "single-page-application", "run_worker_first": ["/api/*", "/sso", "/robots.txt"] },
+  // requests a day; any other address gets the app, whose router shows the page. /.well-known/dozokit-ideas
+  // answers the check made when the owner connects their own address.
+  "assets": { "binding": "ASSETS", "not_found_handling": "single-page-application", "run_worker_first": ["/api/*", "/sso", "/robots.txt", "/.well-known/dozokit-ideas"] },
   // No database_id: the Deploy button creates the database, or `wrangler d1 create` adds it here.
   "d1_databases": [{ "binding": "DB", "database_name": "dozokit-ideas", "migrations_dir": "migrations" }],
   // A copy of every board on Sundays at 03:00 UTC, the last 4 kept. Keep this bucket private: backups hold signed-link secrets.

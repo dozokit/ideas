@@ -95,6 +95,12 @@
 .share-count { margin-top: var(--space-md); }
 .share-count label { display: flex; align-items: center; gap: 0.5rem; font-weight: 600; }
 .share-count input { width: 1.1rem; height: 1.1rem; accent-color: var(--color-ink); }
+/* Settings → Your own address: "Do you have a domain?" and the steps for each answer, as in Dozokit Sites */
+.address-steps { display: grid; gap: var(--space-md); }
+.seg { display: inline-flex; flex-wrap: wrap; width: fit-content; box-shadow: inset 0 0 0 1px var(--color-rule-2); border-radius: var(--radius-input); overflow: hidden; }
+.seg button { border: 0; background: none; padding: 6px 12px; font: inherit; font-size: var(--text-sm); cursor: pointer; }
+.seg button[aria-pressed="true"] { background: var(--color-board); color: var(--color-board-type); }
+.first-steps { margin: 0; padding-left: 1.3em; display: grid; gap: var(--space-2xs); max-width: 40rem; }
 
 @media (max-width: 40rem) {
   .board-list { grid-template-columns: 1fr; }

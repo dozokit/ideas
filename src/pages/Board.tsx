@@ -4,6 +4,22 @@ import { errorText, format, formatDate, statusLabel, useT } from "../i18n";
 import type { BoardInfo, BoardStatus, PostSummary } from "../lib/types";
 import type { Navigate } from "../App";
 
+// While one of a board's pages is open, the browser tab shows the board's name and logo.
+export function showBoardInTab(board: { name: string; logo: string | null }) {
+  const icon = document.querySelector<HTMLLinkElement>('link[rel="icon"]')!;
+  const before = { title: document.title, href: icon.href, type: icon.type };
+  document.title = board.name;
+  if (board.logo) {
+    icon.href = board.logo;
+    icon.type = board.logo.slice("data:".length, board.logo.indexOf(";"));
+  }
+  return () => {
+    document.title = before.title;
+    icon.href = before.href;
+    icon.type = before.type;
+  };
+}
+
 // What someone outside a private board sees: nothing of it, only where to open it from.
 export function NoAccess() {
   const { t } = useT();
@@ -199,6 +215,8 @@ export function Board({ id, admin, navigate }: { id: string; admin: boolean; nav
   useEffect(() => {
     if (!admin && board?.lang) setLang(board.lang);
   }, [admin, board, setLang]);
+
+  useEffect(() => (board ? showBoardInTab(board) : undefined), [board]);
 
   useEffect(() => {
     if (!board) return;

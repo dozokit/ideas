@@ -1,4 +1,4 @@
-import { api, me } from "./api";
+import { api, CHECK, me } from "./api";
 import { login, logout, setupNeeded } from "./admin";
 import { sso } from "./sso";
 import { backup } from "./backup";
@@ -47,6 +47,8 @@ export default {
     }
 
     if (path === "/sso") return sso(req, env, url);
+
+    if (path === CHECK) return new Response("Dozokit Ideas", { headers: { "x-dozokit-ideas": url.searchParams.get("n") ?? "", "cache-control": "no-store" } });
 
     if (path === "/robots.txt") return new Response("User-agent: *\nDisallow: /\n", { headers: { "content-type": "text/plain" } });
 

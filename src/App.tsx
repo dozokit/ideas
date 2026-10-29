@@ -94,10 +94,12 @@ function Shell() {
   const postMatch = path.match(POST_PATH);
   const boardMatch = path.match(BOARD_PATH);
   const adminBoardMatch = path.match(ADMIN_BOARD_PATH);
+  // Every link the admin is shown or copies starts with it.
+  const address = me.domain ? `https://${me.domain}` : location.origin;
   let page: ReactNode;
-  if (path === "/admin") page = <Admin navigate={navigate} />;
-  else if (adminBoardMatch) page = <BoardSettings key={adminBoardMatch[1]} id={adminBoardMatch[1]} navigate={navigate} />;
-  else if (path === "/admin/settings") page = <Settings />;
+  if (path === "/admin") page = <Admin address={address} navigate={navigate} />;
+  else if (adminBoardMatch) page = <BoardSettings key={adminBoardMatch[1]} id={adminBoardMatch[1]} address={address} navigate={navigate} />;
+  else if (path === "/admin/settings") page = <Settings domain={me.domain} address={address} onChange={load} />;
   else if (postMatch) page = <Post boardId={postMatch[1]} postId={Number(postMatch[2])} me={me} navigate={navigate} />;
   else if (boardMatch) page = <Board id={boardMatch[1]} admin={me.admin} navigate={navigate} />;
   else page = <Boards navigate={navigate} />;

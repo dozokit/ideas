@@ -131,6 +131,28 @@ export interface Messages {
     shareHelp: string;
     versionLine: string;
     latestAvailable: string;
+    addressTitle: string;
+    addressNow: string;
+    addressLead: string;
+    addressHave: string;
+    addressNone: string;
+    addressElsewhere: string;
+    addressCloudflare: string;
+    addressOpenWorkers: string;
+    addressNoneStep1: string;
+    addressNoneStep2: string;
+    addressAddToCloudflare: string;
+    addressOnboard: string;
+    addressNameservers: string;
+    addressAddToWorker: string;
+    addressTypeBelow: string;
+    addressField: string;
+    addressChecking: string;
+    addressConnect: string;
+    addressRemove: string;
+    addressConnected: string;
+    addressRemoved: string;
+    addressHelp: string;
   };
   status: Record<"open" | "planned" | "in_progress" | "done", string>;
   err: {
@@ -161,6 +183,9 @@ export interface Messages {
     password_too_short: string;
     invalid_product_name: string;
     invalid_product_url: string;
+    invalid_domain: string;
+    domain_no_answer: string;
+    domain_elsewhere: string;
   };
 }
 
@@ -311,6 +336,28 @@ const en: Messages = {
       "Once a day, this admin page asks Dozokit whether a new version is out. It sends only its version number and a random number made for this copy, nothing about your boards or the people on them. Turned off, nothing is sent and you won't hear about new versions.",
     versionLine: "This copy runs Dozokit Ideas {version}.",
     latestAvailable: "Version {latest} is available.",
+    addressTitle: "Your own address",
+    addressNow: "Your boards are at this address:",
+    addressLead: "One address of your own for all your boards, with HTTPS, like ideas.your-product.com/b/roadmap. Do you have a domain?",
+    addressHave: "Do you have a domain?",
+    addressNone: "No, I need one",
+    addressElsewhere: "Yes, bought elsewhere",
+    addressCloudflare: "Yes, on Cloudflare",
+    addressOpenWorkers: "Open Workers & Pages in Cloudflare",
+    addressNoneStep1: ", click **dozokit-ideas** (the name you gave it), then the **Domains** tab.",
+    addressNoneStep2: "Choose **Buy a domain**. Cloudflare sells it at cost price, about $10 a year for a .com, and connects it to Dozokit Ideas by itself.",
+    addressAddToCloudflare: "Add it to Cloudflare",
+    addressOnboard: ": click **Onboard a domain**, type it and pick the **Free** plan.",
+    addressNameservers: "Where you bought it (OVH, GoDaddy, IONOS…), replace its nameservers with the two Cloudflare shows. It takes from a few minutes to a day; Cloudflare emails you when it's done.",
+    addressAddToWorker: ", click **dozokit-ideas**, then **Domains**, and add the address you want, like ideas.your-product.com, as an existing domain.",
+    addressTypeBelow: "Type it below and click Check and connect.",
+    addressField: "Your address",
+    addressChecking: "Checking…",
+    addressConnect: "Check and connect",
+    addressRemove: "Remove the domain",
+    addressConnected: "Your boards now open at {address}.",
+    addressRemoved: "Your boards are back on this copy's own address.",
+    addressHelp: "The old address keeps working, but someone signed in on one address isn't signed in on the other. Your product's “Ideas” button must now use the new address: the developer instructions in each board's Connect to your product tab already show it.",
   },
   status: { open: "Open", planned: "Planned", in_progress: "In progress", done: "Done" },
   err: {
@@ -341,6 +388,9 @@ const en: Messages = {
     password_too_short: "The new password needs 12 characters or more.",
     invalid_product_name: "Keep the product name to 100 characters or fewer.",
     invalid_product_url: "Enter a link that starts with https://, or leave it empty.",
+    invalid_domain: "Type only the address, like ideas.your-product.com.",
+    domain_no_answer: "No answer from {domain} yet. In Cloudflare, open Workers & Pages → dozokit-ideas → Domains and add it there; it can take a few minutes after that.",
+    domain_elsewhere: "{domain} doesn't lead to your Dozokit Ideas yet. In Cloudflare, open Workers & Pages → dozokit-ideas → Domains and add it there.",
   },
 };
 
@@ -491,6 +541,28 @@ const fr: Messages = {
       "Une fois par jour, cette page d'admin demande à Dozokit si une nouvelle version est sortie. Elle n'envoie que son numéro de version et un nombre au hasard créé pour cette copie, rien sur vos tableaux ni sur les personnes qui les utilisent. Désactivé, rien n'est envoyé et aucune nouvelle version ne vous est signalée.",
     versionLine: "Cette copie utilise Dozokit Ideas {version}.",
     latestAvailable: "La version {latest} est disponible.",
+    addressTitle: "Votre propre adresse",
+    addressNow: "Vos tableaux sont à cette adresse :",
+    addressLead: "Une adresse à vous pour tous vos tableaux, en HTTPS, comme ideas.your-product.com/b/roadmap. Avez-vous un nom de domaine ?",
+    addressHave: "Avez-vous un nom de domaine ?",
+    addressNone: "Non, il m’en faut un",
+    addressElsewhere: "Oui, acheté ailleurs",
+    addressCloudflare: "Oui, sur Cloudflare",
+    addressOpenWorkers: "Ouvrez Workers & Pages dans Cloudflare",
+    addressNoneStep1: ", cliquez sur **dozokit-ideas** (le nom que vous lui avez donné), puis sur l’onglet **Domains**.",
+    addressNoneStep2: "Choisissez **Buy a domain**. Cloudflare le vend à prix coûtant, environ 10 $ par an pour un .com, et le relie tout seul à Dozokit Ideas.",
+    addressAddToCloudflare: "Ajoutez-le à Cloudflare",
+    addressOnboard: " : cliquez sur **Onboard a domain**, tapez-le et choisissez l’offre **Free**.",
+    addressNameservers: "Là où vous l’avez acheté (OVH, GoDaddy, IONOS…), remplacez ses serveurs de noms (nameservers) par les deux que Cloudflare affiche. Cela prend de quelques minutes à une journée ; Cloudflare vous écrit quand c’est fait.",
+    addressAddToWorker: ", cliquez sur **dozokit-ideas**, puis **Domains**, et ajoutez l’adresse voulue, comme ideas.your-product.com, comme domaine existant.",
+    addressTypeBelow: "Tapez-la ci-dessous et cliquez sur Vérifier et relier.",
+    addressField: "Votre adresse",
+    addressChecking: "Vérification…",
+    addressConnect: "Vérifier et relier",
+    addressRemove: "Retirer le nom de domaine",
+    addressConnected: "Vos tableaux s’ouvrent maintenant à {address}.",
+    addressRemoved: "Vos tableaux sont revenus à l’adresse de cette copie.",
+    addressHelp: "L’ancienne adresse fonctionne toujours, mais une personne connectée sur l’une ne l’est pas sur l’autre. Le bouton « Idées » de votre produit doit maintenant utiliser la nouvelle adresse : les instructions pour votre développeur, dans l’onglet Relier à votre produit de chaque tableau, l’indiquent déjà.",
   },
   status: { open: "Ouvert", planned: "Prévu", in_progress: "En cours", done: "Terminé" },
   err: {
@@ -521,6 +593,9 @@ const fr: Messages = {
     password_too_short: "Le nouveau mot de passe doit faire 12 caractères ou plus.",
     invalid_product_name: "Le nom du produit doit faire 100 caractères au plus.",
     invalid_product_url: "Entrez un lien qui commence par https://, ou laissez vide.",
+    invalid_domain: "Tapez seulement l’adresse, comme ideas.your-product.com.",
+    domain_no_answer: "Pas encore de réponse de {domain}. Dans Cloudflare, ouvrez Workers & Pages → dozokit-ideas → Domains et ajoutez-la là ; cela peut ensuite prendre quelques minutes.",
+    domain_elsewhere: "{domain} ne mène pas encore à votre Dozokit Ideas. Dans Cloudflare, ouvrez Workers & Pages → dozokit-ideas → Domains et ajoutez-la là.",
   },
 };
 
@@ -671,6 +746,28 @@ const es: Messages = {
       "Una vez al día, esta página de admin pregunta a Dozokit si hay una versión nueva. Solo envía su número de versión y un número al azar creado para esta copia, nada sobre tus tableros ni sobre quienes los usan. Desactivado, no se envía nada y no sabrás de las versiones nuevas.",
     versionLine: "Esta copia usa Dozokit Ideas {version}.",
     latestAvailable: "La versión {latest} está disponible.",
+    addressTitle: "Tu propia dirección",
+    addressNow: "Tus tableros están en esta dirección:",
+    addressLead: "Una dirección propia para todos tus tableros, con HTTPS, como ideas.your-product.com/b/roadmap. ¿Tienes un dominio?",
+    addressHave: "¿Tienes un dominio?",
+    addressNone: "No, necesito uno",
+    addressElsewhere: "Sí, comprado en otro sitio",
+    addressCloudflare: "Sí, en Cloudflare",
+    addressOpenWorkers: "Abre Workers & Pages en Cloudflare",
+    addressNoneStep1: ", haz clic en **dozokit-ideas** (el nombre que le diste) y luego en la pestaña **Domains**.",
+    addressNoneStep2: "Elige **Buy a domain**. Cloudflare lo vende a precio de coste, unos 10 $ al año por un .com, y lo conecta solo a Dozokit Ideas.",
+    addressAddToCloudflare: "Añádelo a Cloudflare",
+    addressOnboard: ": haz clic en **Onboard a domain**, escríbelo y elige el plan **Free**.",
+    addressNameservers: "Donde lo compraste (OVH, GoDaddy, IONOS…), cambia sus servidores de nombres (nameservers) por los dos que muestra Cloudflare. Tarda de unos minutos a un día; Cloudflare te escribe cuando está listo.",
+    addressAddToWorker: ", haz clic en **dozokit-ideas**, luego en **Domains**, y añade la dirección que quieres, como ideas.your-product.com, como dominio existente.",
+    addressTypeBelow: "Escríbela abajo y haz clic en Comprobar y conectar.",
+    addressField: "Tu dirección",
+    addressChecking: "Comprobando…",
+    addressConnect: "Comprobar y conectar",
+    addressRemove: "Quitar el dominio",
+    addressConnected: "Tus tableros se abren ahora en {address}.",
+    addressRemoved: "Tus tableros vuelven a estar en la dirección propia de esta copia.",
+    addressHelp: "La dirección anterior sigue funcionando, pero quien inicia sesión en una no la tiene iniciada en la otra. El botón «Ideas» de tu producto debe usar ahora la nueva dirección: las instrucciones para tu desarrollador, en la pestaña Conectar con tu producto de cada tablero, ya la muestran.",
   },
   status: { open: "Abierto", planned: "Planificado", in_progress: "En curso", done: "Hecho" },
   err: {
@@ -701,6 +798,9 @@ const es: Messages = {
     password_too_short: "La contraseña nueva necesita 12 caracteres o más.",
     invalid_product_name: "El nombre del producto debe tener 100 caracteres o menos.",
     invalid_product_url: "Escribe un enlace que empiece por https://, o déjalo vacío.",
+    invalid_domain: "Escribe solo la dirección, como ideas.your-product.com.",
+    domain_no_answer: "Todavía no hay respuesta de {domain}. En Cloudflare, abre Workers & Pages → dozokit-ideas → Domains y añádela ahí; después puede tardar unos minutos.",
+    domain_elsewhere: "{domain} todavía no lleva a tu Dozokit Ideas. En Cloudflare, abre Workers & Pages → dozokit-ideas → Domains y añádela ahí.",
   },
 };
 
@@ -851,6 +951,28 @@ const ptBR: Messages = {
       "Uma vez por dia, esta página de admin pergunta à Dozokit se saiu uma nova versão. Ela envia só o número da versão e um número aleatório criado para esta cópia, nada sobre os seus quadros nem sobre quem os usa. Desligado, nada é enviado e você não fica sabendo das novas versões.",
     versionLine: "Esta cópia usa o Dozokit Ideas {version}.",
     latestAvailable: "A versão {latest} está disponível.",
+    addressTitle: "Seu próprio endereço",
+    addressNow: "Seus quadros estão neste endereço:",
+    addressLead: "Um endereço seu para todos os seus quadros, com HTTPS, como ideas.your-product.com/b/roadmap. Você tem um domínio?",
+    addressHave: "Você tem um domínio?",
+    addressNone: "Não, preciso de um",
+    addressElsewhere: "Sim, comprado em outro lugar",
+    addressCloudflare: "Sim, no Cloudflare",
+    addressOpenWorkers: "Abra Workers & Pages no Cloudflare",
+    addressNoneStep1: ", clique em **dozokit-ideas** (o nome que você deu) e depois na aba **Domains**.",
+    addressNoneStep2: "Escolha **Buy a domain**. O Cloudflare vende pelo preço de custo, cerca de US$ 10 por ano para um .com, e o conecta sozinho ao Dozokit Ideas.",
+    addressAddToCloudflare: "Adicione-o ao Cloudflare",
+    addressOnboard: ": clique em **Onboard a domain**, digite-o e escolha o plano **Free**.",
+    addressNameservers: "Onde você o comprou (GoDaddy, Registro.br, Hostinger…), troque os servidores de nomes (nameservers) pelos dois que o Cloudflare mostra. Leva de alguns minutos a um dia; o Cloudflare avisa você por e-mail quando terminar.",
+    addressAddToWorker: ", clique em **dozokit-ideas**, depois em **Domains**, e adicione o endereço que você quer, como ideas.your-product.com, como domínio existente.",
+    addressTypeBelow: "Digite-o abaixo e clique em Verificar e conectar.",
+    addressField: "Seu endereço",
+    addressChecking: "Verificando…",
+    addressConnect: "Verificar e conectar",
+    addressRemove: "Remover o domínio",
+    addressConnected: "Seus quadros agora abrem em {address}.",
+    addressRemoved: "Seus quadros voltaram para o endereço próprio desta cópia.",
+    addressHelp: "O endereço antigo continua funcionando, mas quem está conectado em um não está no outro. O botão “Ideias” do seu produto agora precisa usar o novo endereço: as instruções para o seu desenvolvedor, na aba Conectar ao seu produto de cada quadro, já o mostram.",
   },
   status: { open: "Aberto", planned: "Planejado", in_progress: "Em andamento", done: "Concluído" },
   err: {
@@ -881,6 +1003,9 @@ const ptBR: Messages = {
     password_too_short: "A nova senha precisa de 12 caracteres ou mais.",
     invalid_product_name: "O nome do produto deve ter 100 caracteres ou menos.",
     invalid_product_url: "Digite um link que comece com https://, ou deixe vazio.",
+    invalid_domain: "Digite só o endereço, como ideas.your-product.com.",
+    domain_no_answer: "Ainda sem resposta de {domain}. No Cloudflare, abra Workers & Pages → dozokit-ideas → Domains e adicione-o lá; depois disso pode levar alguns minutos.",
+    domain_elsewhere: "{domain} ainda não leva ao seu Dozokit Ideas. No Cloudflare, abra Workers & Pages → dozokit-ideas → Domains e adicione-o lá.",
   },
 };
 

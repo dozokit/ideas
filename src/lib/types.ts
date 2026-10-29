@@ -10,6 +10,8 @@ export interface Me {
   user: { id: number; name: string; email?: string } | null;
   admin: boolean;
   config: { setupNeeded: string | null };
+  // The admin's own address for every board (Settings → Your own address), or null.
+  domain: string | null;
 }
 
 export interface BoardSummary {

@@ -3,7 +3,7 @@ import { api, ApiError } from "../lib/api";
 import { errorText, format, formatDate, statusLabel, useT } from "../i18n";
 import type { Comment, Me, PostPage, PostSummary } from "../lib/types";
 import type { Navigate } from "../App";
-import { NoAccess } from "./Board";
+import { NoAccess, showBoardInTab } from "./Board";
 
 export function Post({ boardId, postId, me, navigate }: { boardId: string; postId: number; me: Me; navigate: Navigate }) {
   const { t, lang, setLang } = useT();
@@ -35,6 +35,8 @@ export function Post({ boardId, postId, me, navigate }: { boardId: string; postI
     setPageError(null);
     api<PostPage>(`/api/posts/${postId}`).then(setPage, (e) => setPageError(e instanceof ApiError ? e : new ApiError("server_error", 500, null)));
   }, [postId]);
+
+  useEffect(() => (page ? showBoardInTab(page.board) : undefined), [page]);
 
   useEffect(() => {
     if (!page) return;

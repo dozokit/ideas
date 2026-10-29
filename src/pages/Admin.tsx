@@ -9,6 +9,12 @@ import type { Navigate } from "../App";
 // The colour picker's starting point when a board has none: the app's own accent (--color-accent-2).
 const DEFAULT_COLOR = "#bb3d31";
 
+const WORKERS = "https://dash.cloudflare.com/?to=/:account/workers-and-pages";
+const ONBOARD = "https://dash.cloudflare.com/?to=/:account/domains/overview";
+
+// Cloudflare's own button and tab names, written **like this** in the steps, show in bold.
+const bold = (text: string) => text.split("**").map((part, i) => (i % 2 ? <strong key={i}>{part}</strong> : part));
+
 // Read as a data URL, saved with the board and only ever shown as <img src>.
 function LogoField({ logo, onChange }: { logo: string | null; onChange: (logo: string | null) => void }) {
   const { t } = useT();
@@ -45,9 +51,9 @@ function LogoField({ logo, onChange }: { logo: string | null; onChange: (logo: s
 }
 
 // A board's full link, with Copy and Open.
-function BoardLink({ id }: { id: string }) {
+function BoardLink({ id, address }: { id: string; address: string }) {
   const { t } = useT();
-  const link = `${location.origin}/b/${id}`;
+  const link = `${address}/b/${id}`;
   const [copied, setCopied] = useState(false);
   return (
     <div className="sso-row">
@@ -71,7 +77,7 @@ function BoardLink({ id }: { id: string }) {
 }
 
 // /admin/b/:id: a board's settings, in three tabs.
-export function BoardSettings({ id, navigate }: { id: string; navigate: Navigate }) {
+export function BoardSettings({ id, address, navigate }: { id: string; address: string; navigate: Navigate }) {
   const { t } = useT();
   const [board, setBoard] = useState<BoardSummary | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -152,7 +158,7 @@ export function BoardSettings({ id, navigate }: { id: string; navigate: Navigate
     setSsoError(null);
     try {
       const r = await api<{ secret: string }>(`/api/boards/${id}/rotate-secret`, { method: "POST" });
-      setSso((s) => ({ secret: r.secret, audience: s?.audience ?? location.origin }));
+      setSso((s) => ({ secret: r.secret, audience: s?.audience ?? address }));
       setRevealed(true);
     } catch (err) {
       setSsoError(errorText(t, err));
@@ -385,7 +391,7 @@ export function BoardSettings({ id, navigate }: { id: string; navigate: Navigate
             <ol className="steps">
               <li>
                 <h3>{t.admin.connectPublicStep}</h3>
-                <BoardLink id={id} />
+                <BoardLink id={id} address={address} />
                 <p className="help">{t.admin.connectPublicHelp}</p>
               </li>
             </ol>
@@ -435,7 +441,7 @@ function ShareCount({ initial }: { initial: boolean | undefined }) {
 }
 
 // /admin: one card per board, and the new-board form behind "New board".
-export function Admin({ navigate }: { navigate: Navigate }) {
+export function Admin({ address, navigate }: { address: string; navigate: Navigate }) {
   const { t } = useT();
   const [boards, setBoards] = useState<(BoardSummary & { ideas: number })[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -494,7 +500,7 @@ export function Admin({ navigate }: { navigate: Navigate }) {
             </label>
             <p id="board-link-preview" className="help">
               <code>
-                {location.origin}/b/{id || "…"}
+                {address}/b/{id || "…"}
               </code>
             </p>
             <label className="field">
@@ -550,7 +556,7 @@ export function Admin({ navigate }: { navigate: Navigate }) {
                 {b.name} <span className={b.visibility === "team" ? "badge badge--team" : "badge"}>{b.visibility === "team" ? t.admin.visibilityTeam : t.admin.visibilityPublic}</span>
               </h2>
               <p className="help">{format(t.admin.ideasCount, { n: b.ideas })}</p>
-              <BoardLink id={b.id} />
+              <BoardLink id={b.id} address={address} />
               <div>
                 <a
                   className="btn btn--quiet btn--small"
@@ -571,18 +577,135 @@ export function Admin({ navigate }: { navigate: Navigate }) {
   );
 }
 
-// /admin/settings: updates, version and password.
-export function Settings() {
+// /admin/settings: your own address, updates, version and password.
+export function Settings({ domain, address, onChange }: { domain: string | null; address: string; onChange: () => Promise<void> }) {
   const { t } = useT();
   const [release, setRelease] = useState<{ version: string; latest: string | null; share: boolean } | null>(null);
+  const [have, setHave] = useState<"none" | "elsewhere" | "cloudflare" | null>(null);
+  const [typed, setTyped] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
 
   useEffect(() => {
     api<typeof release>("/api/version").then(setRelease, () => {});
   }, []);
 
+  // Empty removes the domain.
+  async function connect(value: string) {
+    setBusy(true);
+    setMsg(null);
+    try {
+      const r = await api<{ domain: string | null }>("/api/address", { method: "PUT", body: JSON.stringify({ domain: value }) });
+      await onChange();
+      setTyped("");
+      setHave(null);
+      setMsg({ ok: true, text: r.domain ? format(t.admin.addressConnected, { address: `https://${r.domain}` }) : t.admin.addressRemoved });
+    } catch (err) {
+      setMsg({ ok: false, text: format(errorText(t, err), { domain: value.trim() }) });
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const workers = (
+    <a href={WORKERS} target="_blank" rel="noopener">
+      {t.admin.addressOpenWorkers} ↗
+    </a>
+  );
+  const addToWorker = (
+    <li>
+      {workers}
+      {bold(t.admin.addressAddToWorker)}
+    </li>
+  );
+  const typeBelow = <li>{t.admin.addressTypeBelow}</li>;
+
   return (
     <div className="settings">
       <h1>{t.nav.settings}</h1>
+
+      <section className="page-section">
+        <h2>{t.admin.addressTitle}</h2>
+        <p>{t.admin.addressNow}</p>
+        <p>
+          <code className="sso-secret">{address}</code>
+        </p>
+        {domain ? (
+          <div className="field-actions">
+            <button type="button" className="btn btn--quiet" disabled={busy} onClick={() => connect("")} data-testid="address-remove">
+              {t.admin.addressRemove}
+            </button>
+          </div>
+        ) : (
+          <div className="address-steps">
+            <p className="lead">{t.admin.addressLead}</p>
+            <div className="seg" role="group" aria-label={t.admin.addressHave}>
+              {([
+                ["none", t.admin.addressNone],
+                ["elsewhere", t.admin.addressElsewhere],
+                ["cloudflare", t.admin.addressCloudflare],
+              ] as const).map(([k, label]) => (
+                <button key={k} type="button" aria-pressed={have === k} onClick={() => setHave(k)}>
+                  {label}
+                </button>
+              ))}
+            </div>
+            {have === "none" && (
+              <ol className="first-steps">
+                <li>
+                  {workers}
+                  {bold(t.admin.addressNoneStep1)}
+                </li>
+                <li>{bold(t.admin.addressNoneStep2)}</li>
+                {typeBelow}
+              </ol>
+            )}
+            {have === "elsewhere" && (
+              <ol className="first-steps">
+                <li>
+                  <a href={ONBOARD} target="_blank" rel="noopener">
+                    {t.admin.addressAddToCloudflare} ↗
+                  </a>
+                  {bold(t.admin.addressOnboard)}
+                </li>
+                <li>{t.admin.addressNameservers}</li>
+                {addToWorker}
+                {typeBelow}
+              </ol>
+            )}
+            {have === "cloudflare" && (
+              <ol className="first-steps">
+                {addToWorker}
+                {typeBelow}
+              </ol>
+            )}
+            {have && (
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  connect(typed);
+                }}
+              >
+                <div className="field-stack">
+                  <label className="field">
+                    <span>{t.admin.addressField}</span>
+                    <input type="text" inputMode="url" spellCheck={false} placeholder="ideas.your-product.com" value={typed} onChange={(e) => setTyped(e.target.value)} required data-testid="address-input" />
+                  </label>
+                </div>
+                <div className="field-actions">
+                  <button type="submit" className="btn btn--ink" disabled={busy || !typed.trim()} data-testid="address-connect">
+                    {busy ? t.admin.addressChecking : t.admin.addressConnect}
+                  </button>
+                </div>
+              </form>
+            )}
+          </div>
+        )}
+        <p className={msg && !msg.ok ? "help help--error" : "help"} role="status">
+          {msg?.text ?? ""}
+        </p>
+        <p className="help">{t.admin.addressHelp}</p>
+      </section>
 
       <section className="page-section">
         <h2>{t.admin.updatesTitle}</h2>

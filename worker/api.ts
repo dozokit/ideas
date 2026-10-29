@@ -54,7 +54,7 @@ const teamOnly = () => json({ error: "team_only" }, 403);
 const membersOnly = () => json({ error: "members_only" }, 403);
 
 // This copy's release. Raise it with each tag on github.com/dozokit/ideas (v1.2.3) and its CHANGELOG.md entry.
-const VERSION = "1.2.3";
+const VERSION = "1.3.0";
 
 // This copy's random id and whether it checks for new versions, made on first use.
 async function install(env: Env) {
@@ -93,11 +93,47 @@ async function setShare(req: Request, env: Env) {
 
 export async function me(req: Request, env: Env) {
   const user = await currentUser(req, env);
+  const admin = await isAdmin(req, env);
   return json({
     user: user ? { id: user.id, name: user.name, email: user.email } : null,
-    admin: await isAdmin(req, env),
+    admin,
     config: { setupNeeded: setupNeeded(env) },
+    // The admin's links use it.
+    domain: admin ? await savedDomain(env) : null,
   });
+}
+
+// ---- your own address -------------------------------------------------------
+
+// Answered by the Worker itself (index.ts), with the nonce it was sent.
+export const CHECK = "/.well-known/dozokit-ideas";
+
+// The owner's own domain for every board (Settings → Your own address), or null.
+const savedDomain = async (env: Env) => (await env.DB.prepare("select domain from address where id = 1").first<{ domain: string }>())?.domain ?? null;
+
+// Where the boards are: that domain, else this copy's own address.
+async function boardsOrigin(env: Env, url: URL) {
+  const domain = await savedDomain(env);
+  return domain ? `https://${domain}` : url.origin;
+}
+
+// A domain is saved only once a test request through it reaches this Worker: the owner added it as a
+// Custom domain on dozokit-ideas in Cloudflare. Empty removes it.
+async function setAddress(req: Request, env: Env) {
+  const { domain: raw } = (await req.json().catch(() => ({}))) as { domain?: unknown };
+  if (typeof raw !== "string") return json({ error: "invalid" }, 400);
+  const domain = raw.trim().toLowerCase().replace(/^https?:\/\//, "").replace(/\/.*$/, "");
+  if (!domain) {
+    await env.DB.prepare("delete from address").run();
+    return json({ domain: null });
+  }
+  if (!/^[a-z0-9-]+(\.[a-z0-9-]+)+$/.test(domain)) return json({ error: "invalid_domain" }, 400);
+  const nonce = crypto.randomUUID().slice(0, 8);
+  const res = await fetch(`https://${domain}${CHECK}?n=${nonce}`, { redirect: "manual", signal: AbortSignal.timeout(8000) }).catch(() => null);
+  if (!res) return json({ error: "domain_no_answer" }, 400);
+  if (res.headers.get("x-dozokit-ideas") !== nonce) return json({ error: "domain_elsewhere" }, 400);
+  await env.DB.prepare("insert or replace into address (id, domain) values (1, ?)").bind(domain).run();
+  return json({ domain });
 }
 
 // ---- boards -------------------------------------------------------------
@@ -178,7 +214,7 @@ async function boardSso(env: Env, admin: boolean, id: string, url: URL) {
   if (!admin) return json({ error: "admin_only" }, 403);
   const board = await getBoard(env, id);
   if (!board) return json({ error: "not_found" }, 404);
-  return json({ boardId: board.id, secret: board.sso_secret, audience: url.origin });
+  return json({ boardId: board.id, secret: board.sso_secret, audience: await boardsOrigin(env, url) });
 }
 
 // "Open as a test person": a signed link minted here for a made-up member, so the admin sees the
@@ -188,9 +224,10 @@ async function testLink(env: Env, admin: boolean, id: string, url: URL) {
   const board = await getBoard(env, id);
   if (!board) return json({ error: "not_found" }, 404);
   const part = (o: object) => b64url(new TextEncoder().encode(JSON.stringify(o)));
-  const claims = { iss: board.id, aud: url.origin, sub: "dozokit-test", name: "Test person", email: "test@example.com", exp: Math.floor(Date.now() / 1000) + 60, jti: crypto.randomUUID() };
+  const origin = await boardsOrigin(env, url);
+  const claims = { iss: board.id, aud: origin, sub: "dozokit-test", name: "Test person", email: "test@example.com", exp: Math.floor(Date.now() / 1000) + 60, jti: crypto.randomUUID() };
   const signed = `${part({ alg: "HS256" })}.${part(claims)}`;
-  const location = `/sso?token=${signed}.${await hmacSign(signed, board.sso_secret)}&return_to=/b/${board.id}`;
+  const location = `${origin}/sso?token=${signed}.${await hmacSign(signed, board.sso_secret)}&return_to=/b/${board.id}`;
   return new Response(null, { status: 302, headers: { location, "referrer-policy": "no-referrer", "cache-control": "no-store" } });
 }
 
@@ -415,6 +452,7 @@ export async function api(req: Request, env: Env, url: URL): Promise<Response> {
   if (path === "/api/password" && method === "POST") return admin ? changePassword(req, env) : json({ error: "admin_only" }, 403);
   if (path === "/api/version" && method === "GET") return admin ? version(env) : json({ error: "admin_only" }, 403);
   if (path === "/api/version" && method === "PUT") return admin ? setShare(req, env) : json({ error: "admin_only" }, 403);
+  if (path === "/api/address" && method === "PUT") return admin ? setAddress(req, env) : json({ error: "admin_only" }, 403);
   if (path === "/api/boards" && method === "GET") return listBoards(env, admin);
   if (path === "/api/boards" && method === "POST") return createBoard(req, env, admin);
   if ((m = path.match(BOARD_ROTATE)) && method === "POST") return rotateSecret(env, admin, m[1]);

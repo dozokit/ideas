@@ -2,6 +2,11 @@
 
 How to update your copy: [dozokit.com/ideas/guide#updating](https://dozokit.com/ideas/guide#updating).
 
+## 1.3.0 – 2026-10-29
+
+- Your boards can open at an address of your own, like ideas.your-product.com, for all of them at once (Settings → Your own address). It walks you through it whether you need to buy a domain, bought one elsewhere or already have one on Cloudflare, then checks the address reaches your copy before saving it. Board links, Copy link, Open as a test person and the developer instructions then use it. The old address keeps working; your product's “Ideas” button must use the new one.
+- The browser tab shows the board's name and logo on its pages.
+
 ## 1.2.3 – 2026-10-29
 
 - People coming to a board see only the board: no Dozokit Ideas menu, no boards list link, no sign-out. The admin keeps the full menu.
