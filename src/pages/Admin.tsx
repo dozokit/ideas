@@ -11,6 +11,8 @@ const DEFAULT_COLOR = "#bb3d31";
 
 const WORKERS = "https://dash.cloudflare.com/?to=/:account/workers-and-pages";
 const ONBOARD = "https://dash.cloudflare.com/?to=/:account/domains/overview";
+// Dozokit's own board for Dozokit Ideas, where owners send their ideas and bugs.
+const FEEDBACK = "https://ideas.dozokit.com/b/ideas";
 
 // Cloudflare's own button and tab names, written **like this** in the steps, show in bold.
 const bold = (text: string) => text.split("**").map((part, i) => (i % 2 ? <strong key={i}>{part}</strong> : part));
@@ -227,6 +229,8 @@ export function BoardSettings({ id, address, navigate }: { id: string; address: 
   const [productName, setProductName] = useState("");
   const [productUrl, setProductUrl] = useState("");
   const [boardLang, setBoardLang] = useState<Lang | null>(null);
+  const [anyoneCanPost, setAnyoneCanPost] = useState(false);
+  const [visitorName, setVisitorName] = useState("");
   const [statuses, setStatuses] = useState<BoardStatus[]>([]);
   const [bugStatuses, setBugStatuses] = useState<BoardStatus[]>([]);
   const [saveBusy, setSaveBusy] = useState(false);
@@ -247,6 +251,8 @@ export function BoardSettings({ id, address, navigate }: { id: string; address: 
     setProductName(b.productName ?? "");
     setProductUrl(b.productUrl ?? "");
     setBoardLang(b.lang);
+    setAnyoneCanPost(b.anyoneCanPost);
+    setVisitorName(b.visitorName ?? "");
     setStatuses(b.statuses);
     setBugStatuses(b.bugStatuses);
   };
@@ -437,7 +443,7 @@ export function BoardSettings({ id, address, navigate }: { id: string; address: 
       </div>
 
       {tab === "look" && (
-        <form onSubmit={(e) => save(e, { name, visibility, logo, color, productName, productUrl, lang: boardLang })}>
+        <form onSubmit={(e) => save(e, { name, visibility, logo, color, productName, productUrl, lang: boardLang, anyoneCanPost, visitorName })}>
           <div className="field-stack">
             <label className="field">
               <span>{t.admin.fieldName}</span>
@@ -451,6 +457,20 @@ export function BoardSettings({ id, address, navigate }: { id: string; address: 
               </select>
             </label>
             <p className="help">{t.admin.visibilityHelp}</p>
+            {visibility === "public" && (
+              <>
+                <label className="check">
+                  <input type="checkbox" checked={anyoneCanPost} onChange={(e) => setAnyoneCanPost(e.target.checked)} data-testid="anyone-can-post" /> {t.admin.anyoneLabel}
+                </label>
+                <p className="help">{t.admin.anyoneHelp}</p>
+                {anyoneCanPost && (
+                  <label className="field">
+                    <span>{t.admin.fieldVisitorName}</span>
+                    <input type="text" maxLength={40} placeholder="Visitor" value={visitorName} onChange={(e) => setVisitorName(e.target.value)} data-testid="visitor-name" />
+                  </label>
+                )}
+              </>
+            )}
             <label className="field">
               <span>{t.admin.fieldLang}</span>
               <select value={boardLang ?? ""} onChange={(e) => setBoardLang((e.target.value || null) as Lang | null)} data-testid="board-lang">
@@ -827,6 +847,12 @@ export function Settings({ domain, address, onChange }: { domain: string | null;
       <section className="page-section">
         <ChangePassword />
       </section>
+
+      <p className="help">
+        <a href={FEEDBACK} target="_blank" rel="noopener" data-testid="send-feedback">
+          {t.admin.sendFeedback} ↗
+        </a>
+      </p>
     </div>
   );
 }

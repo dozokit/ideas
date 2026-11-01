@@ -1,9 +1,9 @@
 import type { Env } from "./index";
-import { currentUser } from "./auth";
+import { currentUser, loginLimited, sessionCookie } from "./auth";
 import { changePassword, isAdmin, setupNeeded } from "./admin";
 import { getBoard, access, statusesOf, BOARD_ID, type Board } from "./boards";
 import { b64url, hmacSign, randomToken } from "./crypto";
-import type { User } from "./users";
+import { upsertUser, type User } from "./users";
 
 const json = (body: unknown, status = 200) => Response.json(body, { status, headers: { "cache-control": "no-store" } });
 // The app's languages (src/i18n.ts LANGS): a board set to one of them shows only that one.
@@ -49,12 +49,12 @@ function cleanStatuses(raw: unknown): { id: string; label: string }[] | null {
 
 const cleanVisibility = (raw: unknown) => (raw === "public" || raw === "team" ? raw : null);
 
-const boardView = (b: Board) => ({ id: b.id, name: b.name, visibility: b.visibility, statuses: JSON.parse(b.statuses), bugStatuses: JSON.parse(b.bug_statuses), logo: b.logo, color: b.color, productName: b.product_name, productUrl: b.product_url, lang: b.lang, createdAt: b.created_at });
+const boardView = (b: Board) => ({ id: b.id, name: b.name, visibility: b.visibility, statuses: JSON.parse(b.statuses), bugStatuses: JSON.parse(b.bug_statuses), logo: b.logo, color: b.color, productName: b.product_name, productUrl: b.product_url, lang: b.lang, anyoneCanPost: Boolean(b.anyone_can_post), visitorName: b.visitor_name, createdAt: b.created_at });
 const teamOnly = () => json({ error: "team_only" }, 403);
 const membersOnly = () => json({ error: "members_only" }, 403);
 
 // This copy's release. Raise it with each tag on github.com/dozokit/ideas (v1.2.3) and its CHANGELOG.md entry.
-export const VERSION = "1.4.1";
+export const VERSION = "1.5.0";
 
 // This copy's random id and whether it checks for new versions, made on first use.
 async function install(env: Env) {
@@ -192,18 +192,22 @@ async function updateBoard(req: Request, env: Env, admin: boolean, id: string) {
   if (productUrl === undefined || (productUrl && !/^https:\/\/[^\s/]+\S*$/i.test(productUrl))) return json({ error: "invalid_product_url" }, 400);
   const lang = body.lang === undefined ? board.lang : body.lang === null || body.lang === "" ? null : typeof body.lang === "string" && LANGS.includes(body.lang) ? body.lang : undefined;
   if (lang === undefined) return json({ error: "invalid_lang" }, 400);
+  const anyone = body.anyoneCanPost === undefined ? board.anyone_can_post : body.anyoneCanPost === true ? 1 : body.anyoneCanPost === false ? 0 : undefined;
+  if (anyone === undefined) return json({ error: "invalid" }, 400);
+  const visitorName = body.visitorName === undefined ? board.visitor_name : optionalText(body.visitorName, 40);
+  if (visitorName === undefined) return json({ error: "invalid_visitor_name" }, 400);
   const list = JSON.stringify(statuses);
   const bugList = JSON.stringify(bugStatuses);
   const moveRemoved = "update posts set status = ? where board_id = ? and type = ? and status not in (select json_extract(value, '$.id') from json_each(?))";
   await env.DB.batch([
-    env.DB.prepare("update boards set name = ?, visibility = ?, logo = ?, color = ?, statuses = ?, bug_statuses = ?, product_name = ?, product_url = ?, lang = ? where id = ?").bind(name, visibility, logo, color, list, bugList, productName, productUrl, lang, id),
+    env.DB.prepare("update boards set name = ?, visibility = ?, logo = ?, color = ?, statuses = ?, bug_statuses = ?, product_name = ?, product_url = ?, lang = ?, anyone_can_post = ?, visitor_name = ? where id = ?").bind(name, visibility, logo, color, list, bugList, productName, productUrl, lang, anyone, visitorName, id),
     // The posts of a removed status move to the first one of their type.
     env.DB.prepare(moveRemoved).bind(statuses[0].id, id, "idea", list),
     env.DB.prepare(moveRemoved).bind(bugStatuses[0].id, id, "bug", bugList),
     // The team user's name follows the board's.
     env.DB.prepare("update users set name = ? where provider = 'sso' and ext_id = ?").bind(`${name} team`, `__team:${id}`),
   ]);
-  return json(boardView({ ...board, name, visibility, logo, color, statuses: list, bug_statuses: bugList, product_name: productName, product_url: productUrl, lang }));
+  return json(boardView({ ...board, name, visibility, logo, color, statuses: list, bug_statuses: bugList, product_name: productName, product_url: productUrl, lang, anyone_can_post: anyone, visitor_name: visitorName }));
 }
 
 async function rotateSecret(env: Env, admin: boolean, id: string) {
@@ -262,6 +266,24 @@ async function similarPosts(env: Env, url: URL, id: string, user: User | null, a
 
 // ---- posts ----------------------------------------------------------------
 
+// Who writes on this board: the person signed in, or, on a board where anyone can post, a new visitor
+// named "<visitor name> 1234", whose session cookie goes on the answer. Each write there counts toward
+// the per-address limit (20 a minute), on top of the visitor it may create.
+async function writer(req: Request, env: Env, board: Board, user: User | null, admin: boolean) {
+  const { see, member, user: actor } = await access(env, board, user, admin);
+  if (!see) return { refused: teamOnly() };
+  if (!member) return { refused: membersOnly() };
+  if (board.anyone_can_post && !admin && (await loginLimited(req, env))) return { refused: json({ error: "too_many" }, 429) };
+  if (actor) return { actor };
+  const visitor = await upsertUser(env, "sso", `__visitor:${crypto.randomUUID()}`, "", `${board.visitor_name || "Visitor"} ${1000 + Math.floor(Math.random() * 9000)}`);
+  return { actor: visitor, cookie: await sessionCookie(req, env, visitor.id) };
+}
+
+function withCookie(res: Response, cookie: string | undefined) {
+  if (cookie) res.headers.append("set-cookie", cookie);
+  return res;
+}
+
 async function listPosts(env: Env, url: URL, id: string, user: User | null, admin: boolean) {
   const board = await getBoard(env, id);
   if (!board) return json({ error: "not_found" }, 404);
@@ -285,9 +307,8 @@ async function listPosts(env: Env, url: URL, id: string, user: User | null, admi
 async function createPost(req: Request, env: Env, id: string, user: User | null, admin: boolean) {
   const board = await getBoard(env, id);
   if (!board) return json({ error: "not_found" }, 404);
-  const { see, member, user: actor } = await access(env, board, user, admin);
-  if (!see) return teamOnly();
-  if (!actor || !member) return membersOnly();
+  const { refused, actor, cookie } = await writer(req, env, board, user, admin);
+  if (refused) return refused;
   // A bug with a screenshot comes as a form, everything else as JSON.
   const multipart = req.headers.get("content-type")?.startsWith("multipart/form-data");
   const body = (multipart ? Object.fromEntries(await req.formData()) : await req.json().catch(() => ({}))) as Record<string, unknown>;
@@ -313,7 +334,7 @@ async function createPost(req: Request, env: Env, id: string, user: User | null,
       .bind(board.id, actor.id, type, title, text, expected, place, screenshot, status, now),
     env.DB.prepare("insert into votes (post_id, user_id, created_at) values (last_insert_rowid(), ?, ?)").bind(actor.id, now),
   ]);
-  return json({ id: (row.results[0] as { id: number }).id, type, title, body: text, status, votes: 1, comments: 0, createdAt: now, author: actor.name, voted: true }, 201);
+  return withCookie(json({ id: (row.results[0] as { id: number }).id, type, title, body: text, status, votes: 1, comments: 0, createdAt: now, author: actor.name, voted: true }, 201), cookie);
 }
 
 export interface PostRow {
@@ -377,18 +398,17 @@ async function withPostBoard(env: Env, id: number) {
   return board ? { post, board } : null;
 }
 
-async function votePost(env: Env, id: number, user: User | null, admin: boolean) {
+async function votePost(req: Request, env: Env, id: number, user: User | null, admin: boolean) {
   const hit = await withPostBoard(env, id);
   if (!hit) return json({ error: "not_found" }, 404);
-  const { see, member, user: actor } = await access(env, hit.board, user, admin);
-  if (!see) return teamOnly();
-  if (!actor || !member) return membersOnly();
+  const { refused, actor, cookie } = await writer(req, env, hit.board, user, admin);
+  if (refused) return refused;
   const [inserted] = await env.DB.batch([
     env.DB.prepare("insert into votes (post_id, user_id, created_at) values (?, ?, ?) on conflict (post_id, user_id) do nothing").bind(id, actor.id, Date.now()),
     env.DB.prepare("update posts set votes = (select count(*) from votes where post_id = ?) where id = ?").bind(id, id),
   ]);
   if (!inserted.meta.changes) return json({ error: "already_voted" }, 409);
-  return json({ ok: true });
+  return withCookie(json({ ok: true }), cookie);
 }
 
 async function unvotePost(env: Env, id: number, user: User | null, admin: boolean) {
@@ -407,9 +427,8 @@ async function unvotePost(env: Env, id: number, user: User | null, admin: boolea
 async function addComment(req: Request, env: Env, id: number, user: User | null, admin: boolean) {
   const hit = await withPostBoard(env, id);
   if (!hit) return json({ error: "not_found" }, 404);
-  const { see, member, user: actor } = await access(env, hit.board, user, admin);
-  if (!see) return teamOnly();
-  if (!actor || !member) return membersOnly();
+  const { refused, actor, cookie } = await writer(req, env, hit.board, user, admin);
+  if (refused) return refused;
   const body = (await req.json().catch(() => ({}))) as Record<string, unknown>;
   const text = requiredText(body.body, 1000);
   if (!text) return json({ error: "invalid_body" }, 400);
@@ -419,7 +438,7 @@ async function addComment(req: Request, env: Env, id: number, user: User | null,
     env.DB.prepare("update posts set comments = (select count(*) from comments where post_id = ?) where id = ?").bind(id, id),
   ]);
   const created = row.results[0] as { id: number } | undefined;
-  return json({ id: created?.id, body: text, author: actor.name, official: actor.ext_id === `__team:${hit.board.id}`, createdAt: now }, 201);
+  return withCookie(json({ id: created?.id, body: text, author: actor.name, official: actor.ext_id === `__team:${hit.board.id}`, createdAt: now }, 201), cookie);
 }
 
 async function updatePostStatus(req: Request, env: Env, admin: boolean, id: number) {
@@ -550,7 +569,7 @@ export async function api(req: Request, env: Env, url: URL): Promise<Response> {
   if ((m = path.match(POST_SCREENSHOT)) && method === "GET") return getScreenshot(env, Number(m[1]), user, admin);
   if ((m = path.match(BOARD_ONE)) && method === "GET") return getBoardInfo(env, m[1], user, admin);
   if ((m = path.match(BOARD_ONE)) && method === "PATCH") return updateBoard(req, env, admin, m[1]);
-  if ((m = path.match(POST_VOTE)) && method === "POST") return votePost(env, Number(m[1]), user, admin);
+  if ((m = path.match(POST_VOTE)) && method === "POST") return votePost(req, env, Number(m[1]), user, admin);
   if ((m = path.match(POST_VOTE)) && method === "DELETE") return unvotePost(env, Number(m[1]), user, admin);
   if ((m = path.match(POST_COMMENTS)) && method === "POST") return addComment(req, env, Number(m[1]), user, admin);
   if ((m = path.match(POST_MERGE)) && method === "POST") return mergePost(req, env, admin, Number(m[1]));

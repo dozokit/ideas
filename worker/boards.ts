@@ -13,6 +13,8 @@ export interface Board {
   product_name: string | null;
   lang: string | null;
   product_url: string | null;
+  anyone_can_post: number;
+  visitor_name: string | null;
   created_at: number;
 }
 
@@ -21,15 +23,16 @@ export const BOARD_ID = /^[a-z0-9-]{2,40}$/;
 // The statuses a post of this type can have: ideas use the board's statuses, bugs its bug statuses.
 export const statusesOf = (board: Board, type: string): { id: string; label: string }[] => JSON.parse(type === "bug" ? board.bug_statuses : board.statuses);
 
-export const getBoard =(env: Env, id: string) => env.DB.prepare("select * from boards where id = ?").bind(id).first<Board>();
+export const getBoard = (env: Env, id: string) => env.DB.prepare("select * from boards where id = ?").bind(id).first<Board>();
 
 // Members, the people this board's signed link let in (a row in board_members), vote, post and
-// comment. Anyone can read a public board; a private one ("team") only its members and the admin.
+// comment. Anyone can read a public board; a private one ("team") only its members and the admin. On a
+// public board where anyone can post, everyone counts as a member (api.ts makes a visitor on their first write).
 // The admin, unless a signed link brought them in as one of this board's members, acts as the
 // board's team user, "<board name> team": its ext_id "__team:<board id>" is one no signed link can
 // make, since a board id has no "_". `user` is who acts here.
 export async function access(env: Env, board: Board, user: User | null, admin: boolean) {
   const member = Boolean(user && (await env.DB.prepare("select 1 from board_members where board_id = ? and user_id = ?").bind(board.id, user.id).first()));
   if (admin && !member) return { see: true, member: true, user: await upsertUser(env, "sso", `__team:${board.id}`, "", `${board.name} team`) };
-  return { see: member || board.visibility === "public", member, user };
+  return { see: member || board.visibility === "public", member: member || (board.visibility === "public" && Boolean(board.anyone_can_post)), user };
 }

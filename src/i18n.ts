@@ -182,6 +182,10 @@ export interface Messages {
     devAddress: string;
     devHeader: string;
     devCopy: string;
+    anyoneLabel: string;
+    anyoneHelp: string;
+    fieldVisitorName: string;
+    sendFeedback: string;
     devTokenUsed: string;
     devTokenNeverUsed: string;
     devTokenRevoke: string;
@@ -220,6 +224,7 @@ export interface Messages {
     domain_elsewhere: string;
     invalid_place: string;
     invalid_screenshot: string;
+    invalid_visitor_name: string;
   };
 }
 
@@ -421,6 +426,10 @@ const en: Messages = {
     devAddress: "Address",
     devHeader: "Header",
     devCopy: "Copy",
+    anyoneLabel: "Anyone can post",
+    anyoneHelp: "Anyone with the link votes, suggests and comments, with no signed link from your product. Each person gets a name like “Visitor 4821” (change “Visitor” below), kept on their browser. Up to 20 posts, comments or votes a minute per address.",
+    fieldVisitorName: "Name for visitors (a number is added)",
+    sendFeedback: "Send feedback on Dozokit Ideas",
     devTokenUsed: "last used {date}",
     devTokenNeverUsed: "never used",
     devTokenRevoke: "Revoke",
@@ -459,6 +468,7 @@ const en: Messages = {
     domain_elsewhere: "{domain} doesn't lead to your Dozokit Ideas yet. In Cloudflare, open Workers & Pages → dozokit-ideas → Domains and add it there.",
     invalid_place: "Keep “where” to 500 characters or fewer.",
     invalid_screenshot: "Choose a PNG, JPEG, WebP or GIF image of 5 MB or less.",
+    invalid_visitor_name: "Keep the name for visitors to 40 characters or fewer.",
   },
 };
 
@@ -660,6 +670,10 @@ const fr: Messages = {
     devAddress: "Adresse",
     devHeader: "En-tête",
     devCopy: "Copier",
+    anyoneLabel: "Tout le monde peut publier",
+    anyoneHelp: "Toute personne qui a le lien vote, propose et commente, sans lien signé de votre produit. Chacune reçoit un nom comme « Visitor 4821 » (changez « Visitor » ci-dessous), gardé sur son navigateur. Jusqu’à 20 publications, commentaires ou votes par minute et par adresse.",
+    fieldVisitorName: "Nom des visiteurs (un numéro est ajouté)",
+    sendFeedback: "Donner votre avis sur Dozokit Ideas",
     devTokenUsed: "utilisé le {date}",
     devTokenNeverUsed: "jamais utilisé",
     devTokenRevoke: "Révoquer",
@@ -698,6 +712,7 @@ const fr: Messages = {
     domain_elsewhere: "{domain} ne mène pas encore à votre Dozokit Ideas. Dans Cloudflare, ouvrez Workers & Pages → dozokit-ideas → Domains et ajoutez-la là.",
     invalid_place: "Limitez « où » à 500 caractères.",
     invalid_screenshot: "Choisissez une image PNG, JPEG, WebP ou GIF de 5 Mo maximum.",
+    invalid_visitor_name: "Limitez le nom des visiteurs à 40 caractères.",
   },
 };
 
@@ -899,6 +914,10 @@ const es: Messages = {
     devAddress: "Dirección",
     devHeader: "Cabecera",
     devCopy: "Copiar",
+    anyoneLabel: "Cualquiera puede publicar",
+    anyoneHelp: "Cualquiera con el enlace vota, propone y comenta, sin enlace firmado de tu producto. Cada persona recibe un nombre como «Visitor 4821» (cambia «Visitor» abajo), guardado en su navegador. Hasta 20 publicaciones, comentarios o votos por minuto y por dirección.",
+    fieldVisitorName: "Nombre de los visitantes (se añade un número)",
+    sendFeedback: "Danos tu opinión sobre Dozokit Ideas",
     devTokenUsed: "usado el {date}",
     devTokenNeverUsed: "nunca usado",
     devTokenRevoke: "Revocar",
@@ -937,6 +956,7 @@ const es: Messages = {
     domain_elsewhere: "{domain} todavía no lleva a tu Dozokit Ideas. En Cloudflare, abre Workers & Pages → dozokit-ideas → Domains y añádela ahí.",
     invalid_place: "Limita «dónde» a 500 caracteres.",
     invalid_screenshot: "Elige una imagen PNG, JPEG, WebP o GIF de 5 MB o menos.",
+    invalid_visitor_name: "Limita el nombre de los visitantes a 40 caracteres.",
   },
 };
 
@@ -1138,6 +1158,10 @@ const ptBR: Messages = {
     devAddress: "Endereço",
     devHeader: "Cabeçalho",
     devCopy: "Copiar",
+    anyoneLabel: "Qualquer pessoa pode publicar",
+    anyoneHelp: "Qualquer pessoa com o link vota, sugere e comenta, sem link assinado do seu produto. Cada uma recebe um nome como “Visitor 4821” (mude “Visitor” abaixo), guardado no navegador dela. Até 20 publicações, comentários ou votos por minuto e por endereço.",
+    fieldVisitorName: "Nome dos visitantes (um número é adicionado)",
+    sendFeedback: "Dê sua opinião sobre o Dozokit Ideas",
     devTokenUsed: "usado em {date}",
     devTokenNeverUsed: "nunca usado",
     devTokenRevoke: "Revogar",
@@ -1176,6 +1200,7 @@ const ptBR: Messages = {
     domain_elsewhere: "{domain} ainda não leva ao seu Dozokit Ideas. No Cloudflare, abra Workers & Pages → dozokit-ideas → Domains e adicione-o lá.",
     invalid_place: "Limite o “onde” a 500 caracteres.",
     invalid_screenshot: "Escolha uma imagem PNG, JPEG, WebP ou GIF de até 5 MB.",
+    invalid_visitor_name: "Limite o nome dos visitantes a 40 caracteres.",
   },
 };
 

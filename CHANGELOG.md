@@ -2,6 +2,11 @@
 
 How to update your copy: [dozokit.com/ideas/guide#updating](https://dozokit.com/ideas/guide#updating).
 
+## 1.5.0 – 2026-11-01
+
+- A public board can let anyone post (the board's Settings → Look → Anyone can post): whoever has the link votes, suggests and comments, with no signed link from your product. Each person gets a name like “Visitor 4821”, with the word you choose, kept on their browser. Each address can post, comment or vote up to 20 times a minute.
+- Settings → Send feedback on Dozokit Ideas opens Dozokit's own board, to tell us what to add or fix.
+
 ## 1.4.1 – 2026-11-01
 
 - The Sunday backup uses less than half the CPU it did (3 database calls instead of 21), so it stays under the Cloudflare free plan's 10 ms limit per run. Same backup file as before.

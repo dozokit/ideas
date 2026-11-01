@@ -26,6 +26,9 @@ export interface BoardSummary {
   productName: string | null;
   productUrl: string | null;
   lang: Lang | null;
+  // A public board where anyone posts with no signed link, named "<visitorName> 1234".
+  anyoneCanPost: boolean;
+  visitorName: string | null;
   createdAt: number;
 }
 

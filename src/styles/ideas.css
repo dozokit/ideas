@@ -105,8 +105,8 @@
 .status-row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-xs); }
 .status-row input { flex: 1 1 10rem; }
 .share-count { margin-top: var(--space-md); }
-.share-count label { display: flex; align-items: center; gap: 0.5rem; font-weight: 600; }
-.share-count input { width: 1.1rem; height: 1.1rem; accent-color: var(--color-ink); }
+.share-count label, .check { display: flex; align-items: center; gap: 0.5rem; font-weight: 600; }
+.share-count input, .check input { width: 1.1rem; height: 1.1rem; accent-color: var(--color-ink); }
 /* Settings → Your own address: "Do you have a domain?" and the steps for each answer, as in Dozokit Sites */
 .address-steps { display: grid; gap: var(--space-md); }
 .seg { display: inline-flex; flex-wrap: wrap; width: fit-content; box-shadow: inset 0 0 0 1px var(--color-rule-2); border-radius: var(--radius-input); overflow: hidden; }
