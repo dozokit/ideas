@@ -2,6 +2,10 @@
 
 How to update your copy: [dozokit.com/ideas/guide#updating](https://dozokit.com/ideas/guide#updating).
 
+## 1.4.1 – 2026-11-01
+
+- The Sunday backup uses less than half the CPU it did (3 database calls instead of 21), so it stays under the Cloudflare free plan's 10 ms limit per run. Same backup file as before.
+
 ## 1.4.0 – 2026-10-29
 
 - Ideas and bug reports: next to **Suggest an idea**, **Report a bug** asks what went wrong, what happened, what the person expected, where (a page or a link) and an optional screenshot. People vote for a bug with the same ▲ button as an idea, so the bugs that bother most people come first. The board has the tabs All, Ideas and Bugs.

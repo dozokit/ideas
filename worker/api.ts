@@ -54,7 +54,7 @@ const teamOnly = () => json({ error: "team_only" }, 403);
 const membersOnly = () => json({ error: "members_only" }, 403);
 
 // This copy's release. Raise it with each tag on github.com/dozokit/ideas (v1.2.3) and its CHANGELOG.md entry.
-export const VERSION = "1.4.0";
+export const VERSION = "1.4.1";
 
 // This copy's random id and whether it checks for new versions, made on first use.
 async function install(env: Env) {

@@ -11,10 +11,12 @@ export async function backup(env: Env) {
   const { results: tables } = await env.DB.prepare(
     "select name from sqlite_master where type = 'table' and name not like 'sqlite_%' and name not like '_cf_%' and name not like 'posts_fts%' and name not in ('sso_jti', 'password') limit 500",
   ).all<{ name: string }>();
-  const counts = await Promise.all(tables.map(async (t) => (await env.DB.prepare(`select count(*) as n from "${t.name}"`).first<{ n: number }>())!.n));
-  const rows = counts.reduce((a, b) => a + b, 0);
+  // One query for the counts and one batch for the copy: each separate D1 call costs CPU, and 21 of
+  // them went over the free plan's 10 ms.
+  const rows = (await env.DB.prepare(`select ${tables.map((t) => `(select count(*) from "${t.name}")`).join(" + ")} as n`).first<{ n: number }>())!.n;
   if (rows > BIG) return console.log(`This week's backup was skipped: ${rows} rows is too many to copy on the free plan (each copy reads every row).`);
-  const copy = Object.fromEntries(await Promise.all(tables.map(async (t) => [t.name, (await env.DB.prepare(`select * from "${t.name}" limit ${BIG}`).all()).results])));
+  const all = await env.DB.batch(tables.map((t) => env.DB.prepare(`select * from "${t.name}" limit ${BIG}`)));
+  const copy = Object.fromEntries(tables.map((t, i) => [t.name, all[i].results]));
   await env.BACKUPS.put(`backups/${new Date().toISOString().slice(0, 10)}.json`, JSON.stringify(copy));
   const { objects } = await env.BACKUPS.list({ prefix: "backups/" });
   // Keeps the 4 newest weekly copies; anything else under backups/ (1.0's daily pieces) goes.
