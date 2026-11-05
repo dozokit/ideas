@@ -7,8 +7,9 @@ import { mcp } from "./mcp";
 export interface Env {
   DB: D1Database;
   ASSETS: Fetcher;
-  // Weekly backups under backups/, bug screenshots under screenshots/.
-  BACKUPS: R2Bucket;
+  // Weekly backups under backups/, bug screenshots under screenshots/: see files.ts.
+  FILES?: KVNamespace;
+  BACKUPS?: R2Bucket;
   PASSWORD?: string;
   LOGIN_LIMIT?: RateLimit;
 }

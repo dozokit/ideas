@@ -14,8 +14,8 @@
   // No database_id: the Deploy button creates the database, or `wrangler d1 create` adds it here.
   "d1_databases": [{ "binding": "DB", "database_name": "dozokit-ideas", "migrations_dir": "migrations" }],
   // A copy of every board on Sundays at 03:00 UTC, the last 4 kept, and bug screenshots (served only through the
-  // Worker, to who can see their board). Keep this bucket private: backups hold signed-link secrets.
-  "r2_buckets": [{ "binding": "BACKUPS", "bucket_name": "dozokit-ideas-backups" }],
+  // Worker, to who can see their board). No id: the Deploy button creates it. Backups hold signed-link secrets.
+  "kv_namespaces": [{ "binding": "FILES" }],
   "triggers": { "crons": ["0 3 * * SUN"] },
   // Admin sign-in and signed-link attempts per address. namespace_id only has to be unique in your Cloudflare account: change it if it clashes.
   "ratelimits": [{ "name": "LOGIN_LIMIT", "namespace_id": "7312", "simple": { "limit": 20, "period": 60 } }],

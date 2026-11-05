@@ -1,7 +1,8 @@
 import type { Env } from "./index";
+import { files } from "./files";
 
 // Sundays at 03:00 UTC (the cron in wrangler.jsonc), as in Dozokit Apps: one JSON copy of every table
-// in R2, the last 4 kept. Backups hold the boards' signing secrets, so the bucket must stay private
+// in files.ts, the last 4 kept. Backups hold the boards' signing secrets, so they must stay private
 // (see README). Left out: sso_jti and password (short-lived or secret), and the search index, which
 // is rebuilt from posts.
 
@@ -17,10 +18,10 @@ export async function backup(env: Env) {
   if (rows > BIG) return console.log(`This week's backup was skipped: ${rows} rows is too many to copy on the free plan (each copy reads every row).`);
   const all = await env.DB.batch(tables.map((t) => env.DB.prepare(`select * from "${t.name}" limit ${BIG}`)));
   const copy = Object.fromEntries(tables.map((t, i) => [t.name, all[i].results]));
-  await env.BACKUPS.put(`backups/${new Date().toISOString().slice(0, 10)}.json`, JSON.stringify(copy));
-  const { objects } = await env.BACKUPS.list({ prefix: "backups/" });
+  const store = files(env);
+  await store.put(`backups/${new Date().toISOString().slice(0, 10)}.json`, JSON.stringify(copy));
+  const keys = await store.list("backups/");
   // Keeps the 4 newest weekly copies; anything else under backups/ (1.0's daily pieces) goes.
-  const keep = objects.map((o) => o.key).filter((k) => /^backups\/\d{4}-\d\d-\d\d\.json$/.test(k)).sort().reverse().slice(0, 4);
-  const old = objects.map((o) => o.key).filter((k) => !keep.includes(k));
-  if (old.length) await env.BACKUPS.delete(old);
+  const keep = keys.filter((k) => /^backups\/\d{4}-\d\d-\d\d\.json$/.test(k)).sort().reverse().slice(0, 4);
+  await Promise.all(keys.filter((k) => !keep.includes(k)).map((k) => store.delete(k)));
 }

@@ -2,6 +2,11 @@
 
 How to update your copy: [dozokit.com/ideas/guide#updating](https://dozokit.com/ideas/guide#updating).
 
+## 1.5.1 – 2026-11-05
+
+- Installing no longer needs Cloudflare's R2, which asks for a subscription before its first bucket: a new copy keeps bug screenshots and the weekly backups in KV, on every free account (1 GB, 1,000 saves a day). A copy already installed keeps its R2 bucket and changes nothing.
+- A password changed on the admin page is checked within the free plan's 10 ms of computing per request. Your next sign-in updates it on its own and signs your other devices out once.
+
 ## 1.5.0 – 2026-11-01
 
 - A public board can let anyone post (the board's Settings → Look → Anyone can post): whoever has the link votes, suggests and comments, with no signed link from your product. Each person gets a name like “Visitor 4821”, with the word you choose, kept on their browser. Each address can post, comment or vote up to 20 times a minute.

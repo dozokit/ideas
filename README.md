@@ -67,7 +67,7 @@ Your admin page tells you when a newer version is out (Settings → Updates; unt
 
 ## Backups
 
-Every Sunday at 03:00 UTC, your boards, ideas, bug reports, votes and comments are copied to the private Cloudflare R2 bucket `dozokit-ideas-backups`, as one file `backups/<day>.json` with every table's rows under its name; the last 4 are kept. A database over 200,000 rows isn't copied (each copy reads every row), and the admin password isn't either. To restore, insert each table's rows back into the table with the same name. The backup also holds each board's signing secret, so keep that bucket private. Coming from 1.0, the first weekly copy removes the old `backups/<day>/<table>/` files. Bug screenshots sit in the same bucket under `screenshots/`, outside the weekly copy; a board shows them only to the people who can see it.
+Every Sunday at 03:00 UTC, your boards, ideas, bug reports, votes and comments are copied to the Cloudflare KV namespace bound as `FILES` (private to your account; a copy set up before 1.5.1 uses its R2 bucket `dozokit-ideas-backups`), as one entry `backups/<day>.json` with every table's rows under its name; the last 4 are kept. A database over 200,000 rows isn't copied (each copy reads every row), and the admin password isn't either. To restore, insert each table's rows back into the table with the same name. The backup also holds each board's signing secret, so keep it private. Coming from 1.0, the first weekly copy removes the old `backups/<day>/<table>/` files. Bug screenshots sit in the same place under `screenshots/`, outside the weekly copy; a board shows them only to the people who can see it.
 
 ## How it counts
 
@@ -89,7 +89,7 @@ To post or vote locally, sign in to `/admin` (you post as the board's team), or 
 
 ## Limits
 
-- Free Cloudflare plan: 10 ms of CPU time per request, and 5 million database rows read a day. Screenshots use R2's free 10 GB.
+- Free Cloudflare plan: 10 ms of CPU time per request, and 5 million database rows read a day. Screenshots use KV's free 1 GB and 1,000 writes a day.
 - One vote per person per idea or bug.
 - A screenshot is a PNG, JPEG, WebP or GIF of 5 MB at most.
 - A board shows its 200 most recent or most voted posts.

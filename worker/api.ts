@@ -1,4 +1,5 @@
 import type { Env } from "./index";
+import { files } from "./files";
 import { currentUser, loginLimited, sessionCookie } from "./auth";
 import { changePassword, isAdmin, setupNeeded } from "./admin";
 import { getBoard, access, statusesOf, BOARD_ID, type Board } from "./boards";
@@ -54,7 +55,7 @@ const teamOnly = () => json({ error: "team_only" }, 403);
 const membersOnly = () => json({ error: "members_only" }, 403);
 
 // This copy's release. Raise it with each tag on github.com/dozokit/ideas (v1.2.3) and its CHANGELOG.md entry.
-export const VERSION = "1.5.0";
+export const VERSION = "1.5.1";
 
 // This copy's random id and whether it checks for new versions, made on first use.
 async function install(env: Env) {
@@ -321,11 +322,11 @@ async function createPost(req: Request, env: Env, id: string, user: User | null,
   if (expected === undefined) return json({ error: "invalid_body" }, 400);
   const place = type === "bug" ? optionalText(body.place, 500) : null;
   if (place === undefined) return json({ error: "invalid_place" }, 400);
-  // PNG, JPEG, WebP or GIF up to 5 MB, streamed to R2 as it is. No SVG: it could carry a script.
+  // PNG, JPEG, WebP or GIF up to 5 MB, stored as it is. No SVG: it could carry a script.
   const shot = type === "bug" && body.screenshot instanceof File && body.screenshot.size ? body.screenshot : null;
   if (shot && (shot.size > 5 * 1024 * 1024 || !/^image\/(png|jpeg|webp|gif)$/.test(shot.type))) return json({ error: "invalid_screenshot" }, 400);
   const screenshot = shot ? `screenshots/${crypto.randomUUID()}` : null;
-  if (shot) await env.BACKUPS.put(screenshot!, shot.stream(), { httpMetadata: { contentType: shot.type } });
+  if (shot) await files(env).put(screenshot!, shot.stream(), shot.type);
   const status = statusesOf(board, type)[0].id;
   const now = Date.now();
   // Its author votes for it, in the same batch.
@@ -384,10 +385,10 @@ async function getScreenshot(env: Env, id: number, user: User | null, admin: boo
   const hit = await withPostBoard(env, id);
   if (!hit?.post.screenshot) return json({ error: "not_found" }, 404);
   if (!(await access(env, hit.board, user, admin)).see) return teamOnly();
-  const file = await env.BACKUPS.get(hit.post.screenshot);
+  const file = await files(env).get(hit.post.screenshot);
   if (!file) return json({ error: "not_found" }, 404);
   return new Response(file.body, {
-    headers: { "content-type": file.httpMetadata?.contentType ?? "application/octet-stream", "cache-control": "private, max-age=86400", "x-content-type-options": "nosniff", "content-security-policy": "sandbox; default-src 'none'" },
+    headers: { "content-type": file.type ?? "application/octet-stream", "cache-control": "private, max-age=86400", "x-content-type-options": "nosniff", "content-security-policy": "sandbox; default-src 'none'" },
   });
 }
 
@@ -455,7 +456,7 @@ async function deletePost(env: Env, admin: boolean, id: number) {
   if (!admin) return json({ error: "admin_only" }, 403);
   const post = await env.DB.prepare("select id, screenshot from posts where id = ?").bind(id).first<{ id: number; screenshot: string | null }>();
   if (!post) return json({ error: "not_found" }, 404);
-  if (post.screenshot) await env.BACKUPS.delete(post.screenshot);
+  if (post.screenshot) await files(env).delete(post.screenshot);
   await env.DB.batch([
     env.DB.prepare("delete from votes where post_id = ?").bind(id),
     env.DB.prepare("delete from comments where post_id = ?").bind(id),
@@ -476,7 +477,7 @@ async function mergePost(req: Request, env: Env, admin: boolean, id: number) {
   if (!source || !target) return json({ error: "not_found" }, 404);
   if (source.board_id !== target.board_id) return json({ error: "different_board" }, 400);
   // The merged post's screenshot moves along when the other one has none; otherwise it goes.
-  if (source.screenshot && target.screenshot) await env.BACKUPS.delete(source.screenshot);
+  if (source.screenshot && target.screenshot) await files(env).delete(source.screenshot);
   await env.DB.batch([
     env.DB.prepare("update posts set screenshot = coalesce(screenshot, ?) where id = ?").bind(source.screenshot, into),
     env.DB.prepare("insert into votes (post_id, user_id, created_at) select ?, user_id, created_at from votes where post_id = ? on conflict (post_id, user_id) do nothing").bind(into, id),
